@@ -230,7 +230,7 @@ function updateCardView() {
 
     // Đặt lại trạng thái lật thẻ
     isFlipped = false;
-    DOM.flashcard.classList.remove('flipped');
+    DOM.flashcard.classList.remove('is-flipped');
 
     // Cập nhật số đếm
     if (DOM.cardCounter) DOM.cardCounter.innerText = `${currentCardIndex + 1} / ${currentDeck.items.length}`;
@@ -269,7 +269,7 @@ function setupEventListeners() {
             // Ngăn chặn lật thẻ nếu click vào nút phát âm
             if(e.target.closest('#speakBtn')) return;
             isFlipped = !isFlipped;
-            DOM.flashcard.classList.toggle('flipped');
+            DOM.flashcard.classList.toggle('is-flipped'); // <-- Sửa ở đây
         });
     }
 
