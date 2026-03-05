@@ -1,5 +1,5 @@
 // =========================================
-// FILE: app.js - XỬ LÝ LOGIC HOÀN CHỈNH
+// FILE: app.js
 // =========================================
 
 let allDecks = [];
@@ -10,7 +10,6 @@ let masteredCards = [];
 let DOM = {};
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Load lịch sử học tập
     try {
         masteredCards = JSON.parse(localStorage.getItem('masteredCards')) || [];
     } catch (e) {
@@ -18,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initDOM();
-    setupTheme(); // Cài đặt Dark mode trước khi render
+    setupTheme(); 
     mergeData();
     renderDeckList(allDecks, DOM.deckList);
     setupNavigation();
@@ -29,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function initDOM() {
     DOM = {
         views: document.querySelectorAll('.view-section'),
-        navItems: document.querySelectorAll('.nav-item, .sidebar-nav .nav-item'),
+        navItems: document.querySelectorAll('.nav-item'),
         deckList: document.getElementById('deckList'),
         libraryList: document.getElementById('libraryList'),
         searchInput: document.getElementById('searchInput'),
@@ -60,8 +59,6 @@ function initDOM() {
 function setupTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
-    
-    // Gạt đúng vị trí nút Switch trong Settings
     if (DOM.themeSwitch) {
         DOM.themeSwitch.checked = (savedTheme === 'dark');
     }
@@ -119,7 +116,7 @@ function setupNavigation() {
                 const titles = {
                     'dashboard': 'Trang chủ',
                     'study': currentDeck ? `Học: ${currentDeck.ten}` : 'Học tập',
-                    'library': 'Tìm kiếm bài học',
+                    'library': 'Thư viện',
                     'settings': 'Cài đặt'
                 };
                 DOM.viewTitle.innerText = titles[targetView] || 'Flashcards';
@@ -147,46 +144,44 @@ function showCard() {
     
     const cardData = currentDeck.items[currentCardIndex];
     
-    // Đảm bảo úp thẻ lại trước khi đổi chữ
     isFlipped = false;
     DOM.flashcard.classList.remove('is-flipped');
 
-    // Chờ 150ms cho animation úp thẻ chạy một chút rồi mới đổi nội dung
+    // Chờ 150ms để thẻ có thời gian úp xuống
     setTimeout(() => {
-        // Mặt trước
-        DOM.cardWord.innerText = cardData.term || '';
-        DOM.cardIpa.innerText = cardData.ipa || '';
+        // Front
+        if(DOM.cardWord) DOM.cardWord.innerText = cardData.term || '';
+        if(DOM.cardIpa) DOM.cardIpa.innerText = cardData.ipa || '';
         if(DOM.cardCounter) DOM.cardCounter.innerText = `${currentCardIndex + 1} / ${currentDeck.items.length}`;
         
-        // Mặt sau
-        if(DOM.cardPos) DOM.cardPos.innerText = `Từ loại: ${cardData.pos || 'N/A'}`;
-        DOM.cardMeaning.innerText = cardData.meaning_vi || '';
-        DOM.cardExampleEn.innerText = cardData.example || '';
-        DOM.cardExampleVi.innerText = cardData.example_vi || '';
-
-        // Tự động đọc từ (Bỏ comment // dòng dưới nếu muốn tự động đọc khi chuyển thẻ)
-        // DOM.speakBtn.click();
+        // Back
+        if(DOM.cardPos) DOM.cardPos.innerText = `${cardData.pos || 'N/A'}`;
+        if(DOM.cardMeaning) DOM.cardMeaning.innerText = cardData.meaning_vi || '';
+        if(DOM.cardExampleEn) DOM.cardExampleEn.innerText = cardData.example || '';
+        if(DOM.cardExampleVi) DOM.cardExampleVi.innerText = cardData.example_vi || '';
     }, 150);
 }
 
 function setupEventListeners() {
-    // Lật Thẻ
+    // 1. Lật thẻ 
     if (DOM.flashcard) {
         DOM.flashcard.addEventListener('click', (e) => {
-            if(e.target.closest('.control-btn')) return; // Không lật nếu bấm nhầm vào nút
+            // Không lật nếu bấm nhầm vào chữ đang bôi đen
+            if (window.getSelection().toString().length > 0) return;
+            
             DOM.flashcard.classList.toggle('is-flipped');
             isFlipped = !isFlipped;
         });
     }
 
-    // Tới / Lui
+    // 2. Nút Next/Prev
     if (DOM.nextBtn) {
         DOM.nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (currentDeck && currentCardIndex < currentDeck.items.length - 1) {
                 currentCardIndex++;
                 showCard();
-            } else if (currentDeck && currentCardIndex === currentDeck.items.length - 1) {
+            } else if (currentDeck) {
                 alert("Chúc mừng! Bạn đã hoàn thành bộ thẻ này.");
             }
         });
@@ -202,7 +197,7 @@ function setupEventListeners() {
         });
     }
 
-    // Phát âm
+    // 3. Đọc từ vựng
     if (DOM.speakBtn) {
         DOM.speakBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -217,7 +212,7 @@ function setupEventListeners() {
         });
     }
 
-    // Đã Thuộc
+    // 4. Xóa / Ghi nhớ thẻ
     if (DOM.masterBtn) {
         DOM.masterBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -233,7 +228,6 @@ function setupEventListeners() {
         });
     }
 
-    // Chưa Thuộc
     if (DOM.notMasteredBtn) {
         DOM.notMasteredBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -241,19 +235,7 @@ function setupEventListeners() {
         });
     }
 
-    // Bắt sự kiện bàn phím
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowRight' || e.key === 'd') {
-            if (DOM.nextBtn) DOM.nextBtn.click();
-        } else if (e.key === 'ArrowLeft' || e.key === 'a') {
-            if (DOM.prevBtn) DOM.prevBtn.click();
-        } else if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault(); 
-            if (DOM.flashcard) DOM.flashcard.click();
-        }
-    });
-
-    // Dark Mode Toggle (Lắng nghe sự thay đổi của công tắc)
+    // 5. Cài đặt chế độ Dark Mode
     if (DOM.themeSwitch) {
         DOM.themeSwitch.addEventListener('change', (e) => {
             const newTheme = e.target.checked ? 'dark' : 'light';
@@ -262,10 +244,10 @@ function setupEventListeners() {
         });
     }
 
-    // Reset Tiến Độ
+    // 6. Xóa tiến độ
     if (DOM.resetStatsBtn) {
         DOM.resetStatsBtn.addEventListener('click', () => {
-            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ tiến độ học tập không?")) {
+            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ tiến độ không?")) {
                 masteredCards = [];
                 localStorage.removeItem('masteredCards');
                 updateDashboardStats();
@@ -274,7 +256,7 @@ function setupEventListeners() {
         });
     }
 
-    // Search Box
+    // 7. Tìm kiếm động
     if (DOM.searchInput) {
         DOM.searchInput.addEventListener('input', (e) => {
             const kw = e.target.value.toLowerCase().trim();
