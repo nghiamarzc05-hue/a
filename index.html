@@ -8,9 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -31,7 +29,7 @@
         <main class="main-content">
             <header class="top-bar">
                 <h1 id="viewTitle">Trang chủ</h1>
-                </header>
+            </header>
 
             <section id="dashboardView" class="view-section active">
                 <div class="stats-grid">
@@ -50,9 +48,8 @@
                         </div>
                     </div>
                 </div>
-                <h3 style="margin-bottom: 15px;">Danh sách bộ thẻ</h3>
-                <ul class="deck-list" id="deckList">
-                    </ul>
+                <h3 style="margin-bottom: 15px;">Danh sách bài học</h3>
+                <ul class="deck-list" id="deckList"></ul>
             </section>
 
             <section id="studyView" class="view-section">
@@ -60,16 +57,21 @@
                     <div class="flashcard-wrapper">
                         <div id="flashcard" class="flashcard">
                             <div class="card-face card-front">
-                                <div class="card-status" id="cardPos">0 / 0</div>
-                                <h2 id="cardWord">Word</h2>
-                                <div class="ipa-text" id="cardIpa">/ipa/</div>
-                                <div class="hint-text">Chạm để lật</div>
+                                <div class="card-content-scroll">
+                                    <div class="card-status" id="cardCounter">0 / 0</div>
+                                    <h2 id="cardWord">Word</h2>
+                                    <div class="ipa-text" id="cardIpa">/ipa/</div>
+                                    <div class="hint-text">Chạm để lật</div>
+                                </div>
                             </div>
                             <div class="card-face card-back">
-                                <h3 id="cardMeaning">Nghĩa tiếng Việt</h3>
-                                <div class="example-box">
-                                    <div class="example-en" id="cardExampleEn">English Example</div>
-                                    <div class="example-vi" id="cardExampleVi">Nghĩa tiếng Việt của ví dụ</div>
+                                <div class="card-content-scroll" style="align-items: flex-start; padding-top: 10px;">
+                                    <div class="card-status" id="cardPos" style="color: var(--primary);">Từ loại</div>
+                                    <h3 id="cardMeaning">Nghĩa tiếng Việt</h3>
+                                    <div class="example-box">
+                                        <div class="example-en" id="cardExampleEn">English Example</div>
+                                        <div class="example-vi" id="cardExampleVi">Nghĩa tiếng Việt ví dụ</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -88,21 +90,21 @@
             <section id="libraryView" class="view-section">
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="Tìm kiếm từ vựng...">
+                    <input type="text" id="searchInput" placeholder="Tìm kiếm bộ thẻ...">
                 </div>
-                <ul class="deck-list" id="libraryList">
-                    </ul>
+                <ul class="deck-list" id="libraryList"></ul>
             </section>
 
             <section id="settingsView" class="view-section">
-                <div class="settings-card stat-card" style="flex-direction: column; align-items: stretch;">
-                    <h3>Cài đặt ứng dụng</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 20px;">Tùy chỉnh trải nghiệm học tập.</p>
-                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 20px;">
+                <div class="settings-card stat-card" style="flex-direction: column; align-items: stretch; gap: 0;">
+                    <h3 style="margin-bottom: 5px;">Cài đặt ứng dụng</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 25px; font-size: 0.95rem;">Tùy chỉnh trải nghiệm học tập.</p>
                     
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 25px;">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                         <span style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">
-                            <i class="fa-solid fa-moon" style="margin-right: 8px;"></i> Chế độ Tối
+                            <i class="fa-solid fa-moon" style="margin-right: 12px; color: var(--primary);"></i> Chế độ Tối
                         </span>
                         <label class="theme-switch">
                             <input type="checkbox" id="themeSwitch">
@@ -110,10 +112,10 @@
                         </label>
                     </div>
 
-                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 20px;">
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 25px;">
 
-                    <button id="resetStatsBtn" class="btn-danger-outline" style="width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--danger); background: transparent; color: var(--danger); font-weight: bold; cursor: pointer;">
-                        <i class="fa-solid fa-trash-can"></i> Xóa toàn bộ tiến độ
+                    <button id="resetStatsBtn" class="btn-danger-outline" style="width: 100%; padding: 14px; border-radius: 14px; border: 2px solid var(--danger); background: transparent; color: var(--danger); font-size: 1.05rem; font-weight: bold; cursor: pointer; transition: 0.3s;">
+                        <i class="fa-solid fa-trash-can" style="margin-right: 8px;"></i> Xóa toàn bộ tiến độ
                     </button>
                 </div>
             </section>
@@ -122,7 +124,7 @@
         <nav class="bottom-nav" id="bottomNav">
             <button class="nav-item active" data-view="dashboard"><i class="fa-solid fa-house"></i><span>Trang chủ</span></button>
             <button class="nav-item" data-view="study"><i class="fa-solid fa-book-open"></i><span>Học</span></button>
-            <button class="nav-item" data-view="library"><i class="fa-solid fa-magnifying-glass"></i><span>Tìm</span></button>
+            <button class="nav-item" data-view="library"><i class="fa-solid fa-magnifying-glass"></i><span>Tìm kiếm</span></button>
             <button class="nav-item" data-view="settings"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></button>
         </nav>
     </div>
