@@ -6,7 +6,172 @@ let masteredCards = [];
 let currentStreak = 0;
 let DOM = {};
 
-// Biến lưu trữ giọng đọc Anh-Mỹ
+// Biến lưu trữ giọng đọc Anh-Mỹ// =========================================
+// FILE: app.js - XỬ LÝ LOGIC (LẬT THẺ TỰ ĐỌC & FIX GIỌNG MỸ)
+// =========================================
+
+let allDecks = [];
+let currentDeck = null;
+let currentCardIndex = 0;
+let isFlipped = false;
+let masteredCards = [];
+let currentStreak = 0;
+let DOM = {};
+let englishVoice = null; // Biến lưu giọng đọc chuẩn Mỹ
+
+// 1. Tải Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW config error: ', err));
+    });
+}
+
+// 2. KHỞI TẠO GIỌNG ĐỌC (ÉP TÌM GIỌNG ANH MỸ)
+function initVoices() {
+    if (!('speechSynthesis' in window)) return;
+    let voices = window.speechSynthesis.getVoices();
+    
+    const findEnglishVoice = (voiceList) => {
+        let voice = voiceList.find(v => v.lang.includes('en-US') && (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Alex')));
+        if (!voice) voice = voiceList.find(v => v.lang === 'en-US' || v.lang === 'en_US');
+        if (!voice) voice = voiceList.find(v => v.lang.startsWith('en'));
+        return voice;
+    };
+
+    if (voices.length > 0) englishVoice = findEnglishVoice(voices);
+
+    window.speechSynthesis.onvoiceschanged = () => {
+        voices = window.speechSynthesis.getVoices();
+        englishVoice = findEnglishVoice(voices);
+    };
+}
+
+// 3. HÀM ĐỌC TỪ VỰNG DÙNG CHUNG
+function playWordSound() {
+    if (!currentDeck || !currentDeck.items) return;
+    const textToSpeak = currentDeck.items[currentCardIndex].term;
+    
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Xóa luồng đọc bị kẹt
+        
+        let utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        if (englishVoice) utterance.voice = englishVoice;
+        
+        setTimeout(() => {
+            window.speechSynthesis.speak(utterance);
+        }, 50); // Delay 50ms chống kẹt trên iOS
+    }
+}
+
+// 4. KHỞI CHẠY ỨNG DỤNG
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        masteredCards = JSON.parse(localStorage.getItem('masteredCards')) || [];
+    } catch (e) {
+        masteredCards = [];
+    }
+
+    initDOM();
+    initVoices();
+    setupTheme(); 
+    checkStreak(); 
+    mergeData();
+    renderDeckList(allDecks, DOM.deckList);
+    setupNavigation();
+    setupEventListeners();
+    updateDashboardStats();
+});
+
+function initDOM() {
+    DOM = {
+        views: document.querySelectorAll('.view-section'),
+        navItems: document.querySelectorAll('.nav-item, .sidebar-nav .nav-item'),
+        deckList: document.getElementById('deckList'),
+        libraryList: document.getElementById('libraryList'),
+        searchInput: document.getElementById('searchInput'),
+        
+        flashcard: document.getElementById('flashcard'),
+        cardWord: document.getElementById('cardWord'),
+        cardIpa: document.getElementById('cardIpa'),
+        cardMeaning: document.getElementById('cardMeaning'),
+        cardExampleEn: document.getElementById('cardExampleEn'),
+        cardExampleVi: document.getElementById('cardExampleVi'),
+        cardPos: document.getElementById('cardPos'),
+        cardCounter: document.getElementById('cardCounter'),
+        
+        prevBtn: document.getElementById('prevBtn'),
+        nextBtn: document.getElementById('nextBtn'),
+        speakBtn: document.getElementById('speakBtn'),
+        masterBtn: document.getElementById('masterBtn'),
+        notMasteredBtn: document.getElementById('notMasteredBtn'),
+        
+        statMastered: document.getElementById('statMastered'),
+        statProgress: document.getElementById('statProgress'),
+        statStreak: document.getElementById('statStreak'),
+        resetStatsBtn: document.getElementById('resetStatsBtn'),
+        themeSwitch: document.getElementById('themeSwitch'),
+        viewTitle: document.getElementById('viewTitle')
+    };
+}
+
+function checkStreak() {
+    const today = new Date().toDateString(); 
+    let lastStudyDate = localStorage.getItem('lastStudyDate');
+    currentStreak = parseInt(localStorage.getItem('currentStreak')) || 0;
+
+    if (lastStudyDate) {
+        const lastDate = new Date(lastStudyDate);
+        const todayDate = new Date(today);
+        const diffTime = Math.abs(todayDate - lastDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 1) {
+            currentStreak = 0;
+            localStorage.setItem('currentStreak', currentStreak);
+        }
+    }
+    if(DOM.statStreak) DOM.statStreak.innerText = `${currentStreak} ngày`;
+}
+
+function noiLua() {
+    const today = new Date().toDateString();
+    let lastStudyDate = localStorage.getItem('lastStudyDate');
+    
+    if (lastStudyDate !== today) {
+        currentStreak++;
+        localStorage.setItem('currentStreak', currentStreak);
+        localStorage.setItem('lastStudyDate', today);
+        
+        if(DOM.statStreak) DOM.statStreak.innerText = `${currentStreak} ngày`;
+        
+        if (typeof confetti !== 'undefined') {
+            confetti({
+                particleCount: 150,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#FF725B', '#FFCD1F', '#23B26D']
+            });
+        }
+    }
+}
+
+function setupTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    if (DOM.themeSwitch) {
+        DOM.themeSwitch.checked = (savedTheme === 'dark');
+    }
+}
+
+function mergeData() {
+    allDecks = [];
+    if (typeof group_1_decks !== 'undefined') allDecks = allDecks.concat(group_1_decks);
+    if (typeof group_2_decks !== 'undefined') allDecks = allDecks.concat(group_2_decks);
+    if (typeof group_3_decks !== 'undefined') allDecks = allDecks.concat(group_3_decks);
+    if (typeof group_4_decks !== 'undefined') allDecks = allDecks.concat(group_4_decks);
+    if (typeof group_5_decks !== '
 let englishVoice = null;
 
 if ('serviceWorker' in navigator) {
