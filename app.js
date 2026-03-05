@@ -1,3 +1,7 @@
+// =========================================
+// FILE: app.js - XỬ LÝ LOGIC HOÀN CHỈNH NHẤT
+// =========================================
+
 let allDecks = [];
 let currentDeck = null;
 let currentCardIndex = 0;
@@ -6,13 +10,14 @@ let masteredCards = [];
 let currentStreak = 0;
 let DOM = {};
 
-// Khởi chạy Service Worker để biến thành App PWA
+// 1. Khởi chạy Service Worker để biến thành App (PWA)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW config error: ', err));
     });
 }
 
+// 2. Khởi chạy khi tải trang xong
 document.addEventListener('DOMContentLoaded', () => {
     try {
         masteredCards = JSON.parse(localStorage.getItem('masteredCards')) || [];
@@ -22,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initDOM();
     setupTheme(); 
-    checkStreak(); // Kiểm tra chuỗi ngày học
+    checkStreak(); // Hiện chuỗi ngày học
     mergeData();
     renderDeckList(allDecks, DOM.deckList);
     setupNavigation();
@@ -30,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDashboardStats();
 });
 
+// 3. Gắn kết nối HTML với JS
 function initDOM() {
     DOM = {
         views: document.querySelectorAll('.view-section'),
@@ -55,55 +61,61 @@ function initDOM() {
         
         statMastered: document.getElementById('statMastered'),
         statProgress: document.getElementById('statProgress'),
-        statStreak: document.getElementById('statStreak'), // DOM cho chuỗi ngày
+        statStreak: document.getElementById('statStreak'),
         resetStatsBtn: document.getElementById('resetStatsBtn'),
         themeSwitch: document.getElementById('themeSwitch'),
         viewTitle: document.getElementById('viewTitle')
     };
 }
 
-// Tính toán chuỗi ngày (Streak)
+// 4. Kiểm tra Chuỗi ngày học (Streak)
 function checkStreak() {
-    const today = new Date().toDateString(); // Lấy ngày hiện tại
+    const today = new Date().toDateString(); 
     let lastStudyDate = localStorage.getItem('lastStudyDate');
     currentStreak = parseInt(localStorage.getItem('currentStreak')) || 0;
 
-    if (lastStudyDate === today) {
-        // Đã học hôm nay rồi, giữ nguyên streak
-    } else if (lastStudyDate) {
+    if (lastStudyDate) {
         const lastDate = new Date(lastStudyDate);
         const todayDate = new Date(today);
         const diffTime = Math.abs(todayDate - lastDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        if (diffDays === 1) {
-            currentStreak++; // Học liên tiếp -> tăng chuỗi
-        } else {
-            currentStreak = 1; // Bỏ lỡ ngày -> reset chuỗi về 1
+        // Nghỉ quá 1 ngày -> Mất chuỗi
+        if (diffDays > 1) {
+            currentStreak = 0;
+            localStorage.setItem('currentStreak', currentStreak);
         }
-    } else {
-        currentStreak = 1; // Học lần đầu tiên
     }
 
-    // Lưu lại ngày học mới nhất và chuỗi
-    localStorage.setItem('lastStudyDate', today);
-    localStorage.setItem('currentStreak', currentStreak);
-    
     if(DOM.statStreak) DOM.statStreak.innerText = `${currentStreak} ngày`;
 }
 
-// Bắn pháo giấy
-function triggerConfetti() {
-    if (typeof confetti !== 'undefined') {
-        confetti({
-            particleCount: 150,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: ['#4255FF', '#23B26D', '#FFCD1F', '#FF725B']
-        });
+// 5. Hàm NỐI LỬA (Chạy khi người dùng học từ)
+function noiLua() {
+    const today = new Date().toDateString();
+    let lastStudyDate = localStorage.getItem('lastStudyDate');
+    
+    // Nếu hôm nay chưa học thì cộng thêm 1 ngày
+    if (lastStudyDate !== today) {
+        currentStreak++;
+        localStorage.setItem('currentStreak', currentStreak);
+        localStorage.setItem('lastStudyDate', today);
+        
+        if(DOM.statStreak) DOM.statStreak.innerText = `${currentStreak} ngày`;
+        
+        // Bắn pháo giấy ăn mừng
+        if (typeof confetti !== 'undefined') {
+            confetti({
+                particleCount: 150,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#FF725B', '#FFCD1F', '#23B26D']
+            });
+        }
     }
 }
 
+// 6. Cài đặt Giao diện Sáng/Tối
 function setupTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -112,6 +124,7 @@ function setupTheme() {
     }
 }
 
+// 7. Lấy dữ liệu bài học
 function mergeData() {
     allDecks = [];
     if (typeof group_1_decks !== 'undefined') allDecks = allDecks.concat(group_1_decks);
@@ -194,6 +207,7 @@ function showCard() {
     isFlipped = false;
     DOM.flashcard.classList.remove('is-flipped');
 
+    // Đợi thẻ úp xong mới đổi chữ
     setTimeout(() => {
         if(DOM.cardWord) DOM.cardWord.innerText = cardData.term || '';
         if(DOM.cardIpa) DOM.cardIpa.innerText = cardData.ipa || '';
@@ -232,32 +246,38 @@ function updateCardStatusUI() {
     }
 }
 
-function checkCompletion() {
-    if (currentCardIndex === currentDeck.items.length - 1) {
-        triggerConfetti(); // Bắn pháo giấy khi đến thẻ cuối cùng
-    }
-}
-
+// 8. TẤT CẢ SỰ KIỆN TƯƠNG TÁC
 function setupEventListeners() {
+    // 8.1. Lật thẻ 3D
     if (DOM.flashcard) {
         DOM.flashcard.addEventListener('click', (e) => {
+            // Không lật thẻ nếu bấm vào các nút điều khiển
+            if (e.target.closest('.control-btn')) return;
+            // Không lật thẻ nếu đang bôi đen chữ
             if (window.getSelection().toString().length > 0) return;
+            
             DOM.flashcard.classList.toggle('is-flipped');
             isFlipped = !isFlipped;
         });
     }
 
+    // 8.2. Nút Next (Qua bài)
     if (DOM.nextBtn) {
         DOM.nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            noiLua(); // CHÂM LỬA STREAK
+            
             if (currentDeck && currentCardIndex < currentDeck.items.length - 1) {
                 currentCardIndex++;
                 showCard();
-                checkCompletion();
+            } else if (currentDeck && currentCardIndex === currentDeck.items.length - 1) {
+                if (typeof confetti !== 'undefined') triggerConfetti();
+                alert("Chúc mừng! Bạn đã hoàn thành bộ thẻ này.");
             }
         });
     }
 
+    // 8.3. Nút Prev (Quay lại)
     if (DOM.prevBtn) {
         DOM.prevBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -268,23 +288,37 @@ function setupEventListeners() {
         });
     }
 
+    // 8.4. NÚT PHÁT ÂM (FIX ĐỂ CHẠY MƯỢT TRÊN ĐIỆN THOẠI)
     if (DOM.speakBtn) {
         DOM.speakBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!currentDeck) return;
+            e.preventDefault();
+            e.stopPropagation(); // Chống lật thẻ
+            
+            if (!currentDeck || !currentDeck.items) return;
             const textToSpeak = currentDeck.items[currentCardIndex].term;
-            if (textToSpeak && 'speechSynthesis' in window) {
+            
+            if ('speechSynthesis' in window) {
+                // Xóa hàng đợi âm thanh cũ tránh bị kẹt
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                utterance.lang = 'en-US';
+                
+                let utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.lang = 'en-US'; // Giọng Mỹ
+                utterance.rate = 0.9;     // Đọc chậm lại chút
+                utterance.volume = 1;
+                
                 window.speechSynthesis.speak(utterance);
+            } else {
+                alert("Trình duyệt của bạn không hỗ trợ tính năng đọc giọng nói.");
             }
         });
     }
 
+    // 8.5. Nút Đã Thuộc
     if (DOM.masterBtn) {
         DOM.masterBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            noiLua(); // CHÂM LỬA STREAK
+            
             if (currentDeck) {
                 const wordId = currentDeck.items[currentCardIndex].id;
                 if (!masteredCards.includes(wordId)) {
@@ -292,14 +326,15 @@ function setupEventListeners() {
                     localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
                     updateDashboardStats();
                 }
-                updateCardStatusUI();
+                updateCardStatusUI(); // Báo màu Xanh
                 
-                // Tùy chọn: Nhảy luôn sang thẻ tiếp theo sau 400ms
+                // Tự động qua thẻ mới sau 400ms (tùy chọn)
                 setTimeout(() => { if(DOM.nextBtn) DOM.nextBtn.click(); }, 400);
             }
         });
     }
 
+    // 8.6. Nút Chưa Thuộc
     if (DOM.notMasteredBtn) {
         DOM.notMasteredBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -311,13 +346,26 @@ function setupEventListeners() {
                     localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
                     updateDashboardStats();
                 }
-                updateCardStatusUI();
+                updateCardStatusUI(); // Báo màu Đỏ
                 
                 setTimeout(() => { if(DOM.nextBtn) DOM.nextBtn.click(); }, 400);
             }
         });
     }
 
+    // 8.7. Phím tắt máy tính
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'd') {
+            if (DOM.nextBtn) DOM.nextBtn.click();
+        } else if (e.key === 'ArrowLeft' || e.key === 'a') {
+            if (DOM.prevBtn) DOM.prevBtn.click();
+        } else if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault(); 
+            if (DOM.flashcard) DOM.flashcard.click();
+        }
+    });
+
+    // 8.8. Cài đặt Dark Mode
     if (DOM.themeSwitch) {
         DOM.themeSwitch.addEventListener('change', (e) => {
             const newTheme = e.target.checked ? 'dark' : 'light';
@@ -326,9 +374,10 @@ function setupEventListeners() {
         });
     }
 
+    // 8.9. Xóa toàn bộ tiến độ
     if (DOM.resetStatsBtn) {
         DOM.resetStatsBtn.addEventListener('click', () => {
-            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ tiến độ học tập không?")) {
+            if (confirm("Xóa toàn bộ tiến độ học tập và chuỗi ngày?")) {
                 masteredCards = [];
                 localStorage.removeItem('masteredCards');
                 localStorage.removeItem('currentStreak');
@@ -342,6 +391,7 @@ function setupEventListeners() {
         });
     }
 
+    // 8.10. Ô Tìm kiếm bài học
     if (DOM.searchInput) {
         DOM.searchInput.addEventListener('input', (e) => {
             const kw = e.target.value.toLowerCase().trim();
@@ -357,6 +407,7 @@ function setupEventListeners() {
     }
 }
 
+// 9. Cập nhật số liệu ở Trang chủ
 function updateDashboardStats() {
     if (DOM.statMastered) DOM.statMastered.innerText = masteredCards.length;
     
