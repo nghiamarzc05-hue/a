@@ -1,5 +1,5 @@
 /* =========================================
-   STYLE.CSS: FIX LỖI LẬT 3D & GIAO DIỆN
+   STYLE.CSS: HOÀN CHỈNH & KHÔNG LỖI
 ========================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@400;500;600;700&display=swap');
@@ -76,48 +76,43 @@ body {
 .stat-info p { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; margin-bottom: 5px; }
 .stat-info h3 { font-size: 1.8rem; color: var(--text-main); }
 
-/* ================== THẺ FLASHCARD 3D CHUẨN ================== */
+/* ================== THẺ FLASHCARD ================== */
 .study-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
-.flashcard-wrapper { perspective: 1000px; width: 100%; max-width: 500px; height: 380px; margin: 20px auto 40px auto; }
+.flashcard-wrapper { perspective: 1500px; width: 100%; max-width: 500px; height: 380px; margin: 20px auto 40px auto; }
 
 .flashcard {
     position: relative; width: 100%; height: 100%;
     transform-style: preserve-3d;
-    transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
 }
-
-.flashcard.is-flipped { 
-    transform: rotateY(180deg);
-}
+.flashcard.is-flipped { transform: rotateY(180deg); }
 
 .card-face {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    -webkit-backface-visibility: hidden; /* Safari Fix */
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    padding: 30px 25px;
+    padding: 30px 20px;
 }
-
 .card-front { transform: rotateY(0deg); }
 .card-back { transform: rotateY(180deg); }
 
-/* Cuộn cho thẻ dài */
 .card-content-scroll { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; overflow-y: auto; overflow-x: hidden; }
 
 /* Mặt trước */
 .card-status { position: absolute; top: 20px; font-size: 0.9rem; font-weight: 700; color: var(--text-muted); letter-spacing: 2px;}
 #cardWord { font-size: 2.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 15px; line-height: 1.2; word-wrap: break-word; width: 100%; }
 .ipa-text { font-size: 1.2rem; color: var(--primary); background-color: rgba(66, 85, 255, 0.1); padding: 6px 20px; border-radius: 20px; font-family: monospace; font-weight: 600; margin-bottom: 15px;}
-.hint-text { position: absolute; bottom: 25px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.hint-text { position: absolute; bottom: 20px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
 
-/* Mặt sau xịn sò */
+/* Mặt sau: SANG TRỌNG VÀ CĂN GIỮA */
 .card-pos-tag { display: inline-block; font-size: 0.8rem; font-weight: 700; color: var(--primary); background-color: rgba(66, 85, 255, 0.1); padding: 6px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 15px; }
-#cardMeaning { font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin-bottom: 25px; line-height: 1.3; text-align: center; }
-.example-box { width: 90%; padding-top: 20px; border-top: 1px solid var(--border-color); background: transparent; text-align: center; }
+#cardMeaning { font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin-bottom: 25px; line-height: 1.3; }
+.example-box { width: 90%; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center; }
 .example-en { font-size: 1.15rem; font-weight: 600; color: var(--primary); margin-bottom: 8px; line-height: 1.4; }
 .example-vi { font-size: 0.95rem; color: var(--text-muted); line-height: 1.5; font-style: italic; }
 
@@ -126,7 +121,7 @@ body {
 .control-btn { width: 55px; height: 55px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-size: 1.3rem; cursor: pointer; box-shadow: var(--shadow-sm); transition: var(--transition); display: flex; justify-content: center; align-items: center; }
 .control-btn:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
 .control-btn:active { transform: translateY(0) scale(0.95); }
-#speakBtn { width: 75px; height: 75px; font-size: 1.8rem; background: var(--primary); color: white; border: none; box-shadow: 0 8px 24px rgba(66, 85, 255, 0.4); }
+.speak-btn { width: 75px; height: 75px; font-size: 1.8rem; background: var(--primary); color: white; border: none; box-shadow: 0 8px 24px rgba(66, 85, 255, 0.4); }
 
 /* --- CÔNG TẮC DARK MODE SETTING --- */
 .theme-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
@@ -140,7 +135,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .bottom-nav { display: none; }
 
-/* --- RESPONSIVE (TỐI ƯU MOBILE) --- */
+/* --- RESPONSIVE MOBILE --- */
 @media (max-width: 768px) {
     .sidebar { display: none; }
     .main-content { margin-left: 0; padding: 20px 15px 120px 15px; }
@@ -160,7 +155,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     
     .study-controls { gap: 15px; }
     .control-btn { width: 50px; height: 50px; font-size: 1.2rem; }
-    #speakBtn { width: 65px; height: 65px; font-size: 1.5rem; }
+    .speak-btn { width: 65px; height: 65px; font-size: 1.5rem; }
 
     .bottom-nav {
         display: flex; position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
