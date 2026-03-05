@@ -3,12 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4255FF">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2602/2602414.png">
+    
     <title>Flashcards Pro</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -34,14 +42,21 @@
             <section id="dashboardView" class="view-section active">
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <i class="fa-solid fa-check-circle"></i>
+                        <i class="fa-solid fa-fire" style="color: #FF725B; background: rgba(255, 114, 91, 0.1);"></i>
+                        <div class="stat-info">
+                            <p>Chuỗi học</p>
+                            <h3 id="statStreak">0 ngày</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fa-solid fa-check-circle" style="color: var(--success); background: rgba(35, 178, 109, 0.1);"></i>
                         <div class="stat-info">
                             <p>Đã thuộc</p>
                             <h3 id="statMastered">0</h3>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <i class="fa-solid fa-fire"></i>
+                        <i class="fa-solid fa-chart-pie"></i>
                         <div class="stat-info">
                             <p>Tiến độ</p>
                             <h3 id="statProgress">0%</h3>
@@ -144,4 +159,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
