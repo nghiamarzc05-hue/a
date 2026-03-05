@@ -452,3 +452,158 @@ body {
     .study-controls { gap: 10px; }
     .control-btn { width: 45px; height: 45px; font-size: 1rem; }
 }
+/* =========================================
+   GÓI NÂNG CẤP GIAO DIỆN (PHẦN 2) - FLASHCARD PRO
+========================================= */
+
+/* --- 1. Hiệu ứng Staggered cho Danh sách bài học --- */
+.deck-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    padding: 0;
+    list-style: none;
+}
+
+.deck-item {
+    animation: slideUpFade 0.5s ease forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+/* Tạo độ trễ (delay) cho từng item (tối đa 10 item đầu) */
+.deck-item:nth-child(1) { animation-delay: 0.05s; }
+.deck-item:nth-child(2) { animation-delay: 0.1s; }
+.deck-item:nth-child(3) { animation-delay: 0.15s; }
+.deck-item:nth-child(4) { animation-delay: 0.2s; }
+.deck-item:nth-child(5) { animation-delay: 0.25s; }
+.deck-item:nth-child(6) { animation-delay: 0.3s; }
+.deck-item:nth-child(7) { animation-delay: 0.35s; }
+.deck-item:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes slideUpFade {
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- 2. Nâng cấp Thanh Tiến Trình (Progress Bar) --- */
+.progress-bar-bg {
+    background-color: var(--border-color);
+    height: 8px;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 8px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #a855f7, var(--primary));
+    background-size: 200% 100%;
+    border-radius: 10px;
+    transition: width 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+    animation: gradientMove 3s linear infinite;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+.progress-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+    float: right;
+    margin-top: -24px;
+}
+
+/* --- 3. Trang trí lại Thống kê Trang chủ (Stats Grid) --- */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: linear-gradient(145deg, var(--card-bg), rgba(255,255,255,0.4));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.3s;
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-card i {
+    font-size: 2rem;
+    padding: 15px;
+    border-radius: 16px;
+    background: rgba(99, 102, 241, 0.1);
+}
+
+/* --- 4. Ô tìm kiếm xịn sò (Focus Glow) --- */
+.search-box {
+    display: flex;
+    align-items: center;
+    background: var(--card-bg);
+    padding: 5px 20px;
+    border-radius: 30px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 25px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+.search-box:focus-within {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+    transform: scale(1.02);
+}
+.search-box input {
+    border: none;
+    outline: none;
+    padding: 12px;
+    width: 100%;
+    font-size: 1rem;
+    background: transparent;
+    color: var(--text-main);
+}
+.search-box i { color: var(--text-muted); font-size: 1.2rem; }
+
+/* --- 5. Nâng cấp Bottom Nav (Kính mờ & Bouncing) --- */
+@media (max-width: 768px) {
+    .bottom-nav {
+        background: rgba(255, 255, 255, 0.85) !important;
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+    [data-theme="dark"] .bottom-nav {
+        background: rgba(31, 41, 55, 0.85) !important;
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .bottom-nav .nav-item i {
+        font-size: 1.4rem;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .bottom-nav .nav-item.active i {
+        transform: translateY(-4px) scale(1.15);
+        color: var(--primary);
+    }
+    
+    .bottom-nav .nav-item.active span {
+        font-weight: 700;
+    }
+    
+    .deck-list {
+        grid-template-columns: 1fr; /* Trở lại 1 cột trên mobile */
+    }
+}
