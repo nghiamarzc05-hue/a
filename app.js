@@ -3,7 +3,15 @@ let currentDeck = null;
 let currentCardIndex = 0;
 let isFlipped = false;
 let masteredCards = [];
+let currentStreak = 0;
 let DOM = {};
+
+// Khởi chạy Service Worker để biến thành App PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW config error: ', err));
+    });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     try {
@@ -14,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initDOM();
     setupTheme(); 
+    checkStreak(); // Kiểm tra chuỗi ngày học
     mergeData();
     renderDeckList(allDecks, DOM.deckList);
     setupNavigation();
@@ -46,10 +55,53 @@ function initDOM() {
         
         statMastered: document.getElementById('statMastered'),
         statProgress: document.getElementById('statProgress'),
+        statStreak: document.getElementById('statStreak'), // DOM cho chuỗi ngày
         resetStatsBtn: document.getElementById('resetStatsBtn'),
         themeSwitch: document.getElementById('themeSwitch'),
         viewTitle: document.getElementById('viewTitle')
     };
+}
+
+// Tính toán chuỗi ngày (Streak)
+function checkStreak() {
+    const today = new Date().toDateString(); // Lấy ngày hiện tại
+    let lastStudyDate = localStorage.getItem('lastStudyDate');
+    currentStreak = parseInt(localStorage.getItem('currentStreak')) || 0;
+
+    if (lastStudyDate === today) {
+        // Đã học hôm nay rồi, giữ nguyên streak
+    } else if (lastStudyDate) {
+        const lastDate = new Date(lastStudyDate);
+        const todayDate = new Date(today);
+        const diffTime = Math.abs(todayDate - lastDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+            currentStreak++; // Học liên tiếp -> tăng chuỗi
+        } else {
+            currentStreak = 1; // Bỏ lỡ ngày -> reset chuỗi về 1
+        }
+    } else {
+        currentStreak = 1; // Học lần đầu tiên
+    }
+
+    // Lưu lại ngày học mới nhất và chuỗi
+    localStorage.setItem('lastStudyDate', today);
+    localStorage.setItem('currentStreak', currentStreak);
+    
+    if(DOM.statStreak) DOM.statStreak.innerText = `${currentStreak} ngày`;
+}
+
+// Bắn pháo giấy
+function triggerConfetti() {
+    if (typeof confetti !== 'undefined') {
+        confetti({
+            particleCount: 150,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#4255FF', '#23B26D', '#FFCD1F', '#FF725B']
+        });
+    }
 }
 
 function setupTheme() {
@@ -139,17 +191,15 @@ function showCard() {
     if (!currentDeck || !currentDeck.items) return;
     
     const cardData = currentDeck.items[currentCardIndex];
-    
     isFlipped = false;
     DOM.flashcard.classList.remove('is-flipped');
 
-    // Chờ tí xíu cho thẻ gập lại rồi mới render text mặt sau
     setTimeout(() => {
         if(DOM.cardWord) DOM.cardWord.innerText = cardData.term || '';
         if(DOM.cardIpa) DOM.cardIpa.innerText = cardData.ipa || '';
         if(DOM.cardCounter) DOM.cardCounter.innerText = `${currentCardIndex + 1} / ${currentDeck.items.length}`;
         
-        if(DOM.cardPos) DOM.cardPos.innerText = `${cardData.pos || 'N/A'}`;
+        if(DOM.cardPos) DOM.cardPos.innerText = `${cardData.pos || 'Từ vựng'}`;
         if(DOM.cardMeaning) DOM.cardMeaning.innerText = cardData.meaning_vi || '';
         if(DOM.cardExampleEn) DOM.cardExampleEn.innerText = cardData.example || '';
         if(DOM.cardExampleVi) DOM.cardExampleVi.innerText = cardData.example_vi || '';
@@ -158,7 +208,6 @@ function showCard() {
     }, 150);
 }
 
-// Đổi màu Nút Đã Thuộc / Chưa Thuộc ngay tại thẻ
 function updateCardStatusUI() {
     if (!currentDeck) return;
     const cardId = currentDeck.items[currentCardIndex].id;
@@ -169,7 +218,6 @@ function updateCardStatusUI() {
             DOM.masterBtn.style.color = 'var(--success)';
             DOM.masterBtn.style.borderColor = 'var(--success)';
             DOM.masterBtn.style.backgroundColor = 'rgba(35, 178, 109, 0.1)';
-            
             DOM.notMasteredBtn.style.color = '';
             DOM.notMasteredBtn.style.borderColor = '';
             DOM.notMasteredBtn.style.backgroundColor = '';
@@ -177,7 +225,6 @@ function updateCardStatusUI() {
             DOM.masterBtn.style.color = '';
             DOM.masterBtn.style.borderColor = '';
             DOM.masterBtn.style.backgroundColor = '';
-
             DOM.notMasteredBtn.style.color = 'var(--danger)';
             DOM.notMasteredBtn.style.borderColor = 'var(--danger)';
             DOM.notMasteredBtn.style.backgroundColor = 'rgba(255, 114, 91, 0.1)';
@@ -185,24 +232,28 @@ function updateCardStatusUI() {
     }
 }
 
+function checkCompletion() {
+    if (currentCardIndex === currentDeck.items.length - 1) {
+        triggerConfetti(); // Bắn pháo giấy khi đến thẻ cuối cùng
+    }
+}
+
 function setupEventListeners() {
-    // 1. Lật thẻ (click vào bất kỳ đâu trên thẻ)
     if (DOM.flashcard) {
         DOM.flashcard.addEventListener('click', (e) => {
-            // Không lật thẻ nếu đang bôi đen text để copy
             if (window.getSelection().toString().length > 0) return;
             DOM.flashcard.classList.toggle('is-flipped');
             isFlipped = !isFlipped;
         });
     }
 
-    // 2. Chuyển thẻ
     if (DOM.nextBtn) {
         DOM.nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (currentDeck && currentCardIndex < currentDeck.items.length - 1) {
                 currentCardIndex++;
                 showCard();
+                checkCompletion();
             }
         });
     }
@@ -217,10 +268,9 @@ function setupEventListeners() {
         });
     }
 
-    // 3. Loa phát âm
     if (DOM.speakBtn) {
         DOM.speakBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Ngăn sự kiện lật thẻ
+            e.stopPropagation();
             if (!currentDeck) return;
             const textToSpeak = currentDeck.items[currentCardIndex].term;
             if (textToSpeak && 'speechSynthesis' in window) {
@@ -232,10 +282,9 @@ function setupEventListeners() {
         });
     }
 
-    // 4. Ghi nhớ thẻ (Chỉ đổi màu, KHÔNG tự động qua thẻ mới)
     if (DOM.masterBtn) {
         DOM.masterBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Ngăn sự kiện lật thẻ
+            e.stopPropagation();
             if (currentDeck) {
                 const wordId = currentDeck.items[currentCardIndex].id;
                 if (!masteredCards.includes(wordId)) {
@@ -244,13 +293,16 @@ function setupEventListeners() {
                     updateDashboardStats();
                 }
                 updateCardStatusUI();
+                
+                // Tùy chọn: Nhảy luôn sang thẻ tiếp theo sau 400ms
+                setTimeout(() => { if(DOM.nextBtn) DOM.nextBtn.click(); }, 400);
             }
         });
     }
 
     if (DOM.notMasteredBtn) {
         DOM.notMasteredBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Ngăn sự kiện lật thẻ
+            e.stopPropagation();
             if (currentDeck) {
                 const wordId = currentDeck.items[currentCardIndex].id;
                 const index = masteredCards.indexOf(wordId);
@@ -260,11 +312,12 @@ function setupEventListeners() {
                     updateDashboardStats();
                 }
                 updateCardStatusUI();
+                
+                setTimeout(() => { if(DOM.nextBtn) DOM.nextBtn.click(); }, 400);
             }
         });
     }
 
-    // 5. Cài đặt chế độ Dark Mode
     if (DOM.themeSwitch) {
         DOM.themeSwitch.addEventListener('change', (e) => {
             const newTheme = e.target.checked ? 'dark' : 'light';
@@ -273,12 +326,15 @@ function setupEventListeners() {
         });
     }
 
-    // 6. Xóa tiến độ
     if (DOM.resetStatsBtn) {
         DOM.resetStatsBtn.addEventListener('click', () => {
             if (confirm("Bạn có chắc chắn muốn xóa toàn bộ tiến độ học tập không?")) {
                 masteredCards = [];
                 localStorage.removeItem('masteredCards');
+                localStorage.removeItem('currentStreak');
+                localStorage.removeItem('lastStudyDate');
+                currentStreak = 0;
+                if(DOM.statStreak) DOM.statStreak.innerText = `0 ngày`;
                 updateDashboardStats();
                 if(currentDeck) updateCardStatusUI();
                 alert("Đã xóa dữ liệu thành công!");
@@ -286,7 +342,6 @@ function setupEventListeners() {
         });
     }
 
-    // 7. Tìm kiếm
     if (DOM.searchInput) {
         DOM.searchInput.addEventListener('input', (e) => {
             const kw = e.target.value.toLowerCase().trim();
