@@ -1,294 +1,3 @@
-// =========================================
-// FILE: app.js
-// =========================================
-
-let allDecks = [];
-let currentDeck = null;
-let currentCardIndex = 0;
-let isFlipped = false;
-let masteredCards = [];
-let DOM = {};
-
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        masteredCards = JSON.parse(localStorage.getItem('masteredCards')) || [];
-    } catch (e) {
-        masteredCards = [];
-    }
-
-    initDOM();
-    setupTheme(); 
-    mergeData();
-    renderDeckList(allDecks, DOM.deckList);
-    setupNavigation();
-    setupEventListeners();
-    updateDashboardStats();
-});
-
-function initDOM() {
-    DOM = {
-        views: document.querySelectorAll('.view-section'),
-        navItems: document.querySelectorAll('.nav-item'),
-        deckList: document.getElementById('deckList'),
-        libraryList: document.getElementById('libraryList'),
-        searchInput: document.getElementById('searchInput'),
-        
-        flashcard: document.getElementById('flashcard'),
-        cardWord: document.getElementById('cardWord'),
-        cardIpa: document.getElementById('cardIpa'),
-        cardMeaning: document.getElementById('cardMeaning'),
-        cardExampleEn: document.getElementById('cardExampleEn'),
-        cardExampleVi: document.getElementById('cardExampleVi'),
-        cardPos: document.getElementById('cardPos'),
-        cardCounter: document.getElementById('cardCounter'),
-        
-        prevBtn: document.getElementById('prevBtn'),
-        nextBtn: document.getElementById('nextBtn'),
-        speakBtn: document.getElementById('speakBtn'),
-        masterBtn: document.getElementById('masterBtn'),
-        notMasteredBtn: document.getElementById('notMasteredBtn'),
-        
-        statMastered: document.getElementById('statMastered'),
-        statProgress: document.getElementById('statProgress'),
-        resetStatsBtn: document.getElementById('resetStatsBtn'),
-        themeSwitch: document.getElementById('themeSwitch'),
-        viewTitle: document.getElementById('viewTitle')
-    };
-}
-
-function setupTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    if (DOM.themeSwitch) {
-        DOM.themeSwitch.checked = (savedTheme === 'dark');
-    }
-}
-
-function mergeData() {
-    allDecks = [];
-    if (typeof group_1_decks !== 'undefined') allDecks = allDecks.concat(group_1_decks);
-    if (typeof group_2_decks !== 'undefined') allDecks = allDecks.concat(group_2_decks);
-    if (typeof group_3_decks !== 'undefined') allDecks = allDecks.concat(group_3_decks);
-    if (typeof group_4_decks !== 'undefined') allDecks = allDecks.concat(group_4_decks);
-    if (typeof group_5_decks !== 'undefined') allDecks = allDecks.concat(group_5_decks);
-    if (typeof group_6_decks !== 'undefined') allDecks = allDecks.concat(group_6_decks);
-    if (typeof group_7_decks !== 'undefined') allDecks = allDecks.concat(group_7_decks);
-    if (typeof group_8_decks !== 'undefined') allDecks = allDecks.concat(group_8_decks);
-    if (typeof group_9_decks !== 'undefined') allDecks = allDecks.concat(group_9_decks);
-    if (typeof group_10_decks !== 'undefined') allDecks = allDecks.concat(group_10_decks);
-    if (typeof group_11_decks !== 'undefined') allDecks = allDecks.concat(group_11_decks);
-}
-
-function renderDeckList(decksToRender, targetDOM) {
-    if (!targetDOM) return;
-    targetDOM.innerHTML = '';
-    
-    decksToRender.forEach(deck => {
-        const totalItems = deck.items ? deck.items.length : 0;
-        const li = document.createElement('li');
-        li.className = 'deck-item';
-        li.innerHTML = `
-            <div class="deck-info">
-                <strong>${deck.ten}</strong>
-                <span class="deck-meta">${totalItems} thuật ngữ</span>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
-        `;
-        li.addEventListener('click', () => loadDeck(deck));
-        targetDOM.appendChild(li);
-    });
-}
-
-function setupNavigation() {
-    DOM.navItems.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const targetView = e.currentTarget.getAttribute('data-view');
-            
-            DOM.navItems.forEach(b => b.classList.remove('active'));
-            DOM.views.forEach(v => v.classList.remove('active'));
-            
-            document.querySelectorAll(`[data-view="${targetView}"]`).forEach(b => b.classList.add('active'));
-            
-            const viewEl = document.getElementById(targetView + 'View');
-            if (viewEl) viewEl.classList.add('active');
-
-            if (DOM.viewTitle) {
-                const titles = {
-                    'dashboard': 'Trang chủ',
-                    'study': currentDeck ? `Học: ${currentDeck.ten}` : 'Học tập',
-                    'library': 'Thư viện',
-                    'settings': 'Cài đặt'
-                };
-                DOM.viewTitle.innerText = titles[targetView] || 'Flashcards';
-            }
-
-            if (targetView === 'library') {
-                renderDeckList(allDecks, DOM.libraryList);
-                if(DOM.searchInput) DOM.searchInput.value = '';
-            }
-        });
-    });
-}
-
-function loadDeck(deck) {
-    if (!deck || !deck.items || deck.items.length === 0) return;
-    currentDeck = deck;
-    currentCardIndex = 0;
-    
-    document.querySelector('[data-view="study"]').click();
-    showCard();
-}
-
-function showCard() {
-    if (!currentDeck || !currentDeck.items) return;
-    
-    const cardData = currentDeck.items[currentCardIndex];
-    
-    isFlipped = false;
-    DOM.flashcard.classList.remove('is-flipped');
-
-    // Chờ 150ms để thẻ có thời gian úp xuống
-    setTimeout(() => {
-        // Front
-        if(DOM.cardWord) DOM.cardWord.innerText = cardData.term || '';
-        if(DOM.cardIpa) DOM.cardIpa.innerText = cardData.ipa || '';
-        if(DOM.cardCounter) DOM.cardCounter.innerText = `${currentCardIndex + 1} / ${currentDeck.items.length}`;
-        
-        // Back
-        if(DOM.cardPos) DOM.cardPos.innerText = `${cardData.pos || 'N/A'}`;
-        if(DOM.cardMeaning) DOM.cardMeaning.innerText = cardData.meaning_vi || '';
-        if(DOM.cardExampleEn) DOM.cardExampleEn.innerText = cardData.example || '';
-        if(DOM.cardExampleVi) DOM.cardExampleVi.innerText = cardData.example_vi || '';
-    }, 150);
-}
-
-function setupEventListeners() {
-    // 1. Lật thẻ 
-    if (DOM.flashcard) {
-        DOM.flashcard.addEventListener('click', (e) => {
-            // Không lật nếu bấm nhầm vào chữ đang bôi đen
-            if (window.getSelection().toString().length > 0) return;
-            
-            DOM.flashcard.classList.toggle('is-flipped');
-            isFlipped = !isFlipped;
-        });
-    }
-
-    // 2. Nút Next/Prev
-    if (DOM.nextBtn) {
-        DOM.nextBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentDeck && currentCardIndex < currentDeck.items.length - 1) {
-                currentCardIndex++;
-                showCard();
-            } else if (currentDeck) {
-                alert("Chúc mừng! Bạn đã hoàn thành bộ thẻ này.");
-            }
-        });
-    }
-
-    if (DOM.prevBtn) {
-        DOM.prevBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentDeck && currentCardIndex > 0) {
-                currentCardIndex--;
-                showCard();
-            }
-        });
-    }
-
-    // 3. Đọc từ vựng
-    if (DOM.speakBtn) {
-        DOM.speakBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!currentDeck) return;
-            const textToSpeak = currentDeck.items[currentCardIndex].term;
-            if (textToSpeak && 'speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                utterance.lang = 'en-US';
-                window.speechSynthesis.speak(utterance);
-            }
-        });
-    }
-
-    // 4. Xóa / Ghi nhớ thẻ
-    if (DOM.masterBtn) {
-        DOM.masterBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentDeck) {
-                const wordId = currentDeck.items[currentCardIndex].id;
-                if (!masteredCards.includes(wordId)) {
-                    masteredCards.push(wordId);
-                    localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
-                    updateDashboardStats();
-                }
-                DOM.nextBtn.click();
-            }
-        });
-    }
-
-    if (DOM.notMasteredBtn) {
-        DOM.notMasteredBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            DOM.nextBtn.click();
-        });
-    }
-
-    // 5. Cài đặt chế độ Dark Mode
-    if (DOM.themeSwitch) {
-        DOM.themeSwitch.addEventListener('change', (e) => {
-            const newTheme = e.target.checked ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-        });
-    }
-
-    // 6. Xóa tiến độ
-    if (DOM.resetStatsBtn) {
-        DOM.resetStatsBtn.addEventListener('click', () => {
-            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ tiến độ không?")) {
-                masteredCards = [];
-                localStorage.removeItem('masteredCards');
-                updateDashboardStats();
-                alert("Đã xóa dữ liệu thành công!");
-            }
-        });
-    }
-
-    // 7. Tìm kiếm động
-    if (DOM.searchInput) {
-        DOM.searchInput.addEventListener('input', (e) => {
-            const kw = e.target.value.toLowerCase().trim();
-            if (kw === '') {
-                renderDeckList(allDecks, DOM.libraryList);
-                return;
-            }
-            const filtered = allDecks.filter(deck => 
-                deck.ten.toLowerCase().includes(kw)
-            );
-            renderDeckList(filtered, DOM.libraryList);
-        });
-    }
-}
-
-function updateDashboardStats() {
-    if (DOM.statMastered) DOM.statMastered.innerText = masteredCards.length;
-    
-    let totalWords = 0;
-    allDecks.forEach(deck => {
-        if (deck.items) totalWords += deck.items.length;
-    });
-    
-    if (totalWords > 0 && DOM.statProgress) {
-        const percent = Math.round((masteredCards.length / totalWords) * 100);
-        DOM.statProgress.innerText = `${percent}%`;
-    }
-}
-// =========================================
-// FILE: app.js - XỬ LÝ LOGIC HOÀN CHỈNH
-// =========================================
-
 let allDecks = [];
 let currentDeck = null;
 let currentCardIndex = 0;
@@ -434,25 +143,22 @@ function showCard() {
     isFlipped = false;
     DOM.flashcard.classList.remove('is-flipped');
 
+    // Chờ tí xíu cho thẻ gập lại rồi mới render text mặt sau
     setTimeout(() => {
-        // Front
         if(DOM.cardWord) DOM.cardWord.innerText = cardData.term || '';
         if(DOM.cardIpa) DOM.cardIpa.innerText = cardData.ipa || '';
         if(DOM.cardCounter) DOM.cardCounter.innerText = `${currentCardIndex + 1} / ${currentDeck.items.length}`;
         
-        // Back
         if(DOM.cardPos) DOM.cardPos.innerText = `${cardData.pos || 'N/A'}`;
         if(DOM.cardMeaning) DOM.cardMeaning.innerText = cardData.meaning_vi || '';
         if(DOM.cardExampleEn) DOM.cardExampleEn.innerText = cardData.example || '';
         if(DOM.cardExampleVi) DOM.cardExampleVi.innerText = cardData.example_vi || '';
         
-        // Cập nhật màu cho nút Thuộc/Chưa thuộc
         updateCardStatusUI();
-
     }, 150);
 }
 
-// Cập nhật phản hồi màu sắc cho nút dựa trên trạng thái của thẻ
+// Đổi màu Nút Đã Thuộc / Chưa Thuộc ngay tại thẻ
 function updateCardStatusUI() {
     if (!currentDeck) return;
     const cardId = currentDeck.items[currentCardIndex].id;
@@ -460,22 +166,18 @@ function updateCardStatusUI() {
     
     if (DOM.masterBtn && DOM.notMasteredBtn) {
         if (isMastered) {
-            // Nút V (Sáng màu xanh)
             DOM.masterBtn.style.color = 'var(--success)';
             DOM.masterBtn.style.borderColor = 'var(--success)';
             DOM.masterBtn.style.backgroundColor = 'rgba(35, 178, 109, 0.1)';
             
-            // Nút X (Trở về xám bình thường)
             DOM.notMasteredBtn.style.color = '';
             DOM.notMasteredBtn.style.borderColor = '';
             DOM.notMasteredBtn.style.backgroundColor = '';
         } else {
-            // Nút V (Trở về xám bình thường)
             DOM.masterBtn.style.color = '';
             DOM.masterBtn.style.borderColor = '';
             DOM.masterBtn.style.backgroundColor = '';
 
-            // Nút X (Sáng màu đỏ để báo chưa thuộc)
             DOM.notMasteredBtn.style.color = 'var(--danger)';
             DOM.notMasteredBtn.style.borderColor = 'var(--danger)';
             DOM.notMasteredBtn.style.backgroundColor = 'rgba(255, 114, 91, 0.1)';
@@ -484,24 +186,23 @@ function updateCardStatusUI() {
 }
 
 function setupEventListeners() {
-    // 1. Lật thẻ 
+    // 1. Lật thẻ (click vào bất kỳ đâu trên thẻ)
     if (DOM.flashcard) {
         DOM.flashcard.addEventListener('click', (e) => {
+            // Không lật thẻ nếu đang bôi đen text để copy
             if (window.getSelection().toString().length > 0) return;
             DOM.flashcard.classList.toggle('is-flipped');
             isFlipped = !isFlipped;
         });
     }
 
-    // 2. Nút Next/Prev
+    // 2. Chuyển thẻ
     if (DOM.nextBtn) {
         DOM.nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (currentDeck && currentCardIndex < currentDeck.items.length - 1) {
                 currentCardIndex++;
                 showCard();
-            } else if (currentDeck) {
-                alert("Chúc mừng! Bạn đã hoàn thành bộ thẻ này.");
             }
         });
     }
@@ -516,10 +217,10 @@ function setupEventListeners() {
         });
     }
 
-    // 3. Đọc từ vựng
+    // 3. Loa phát âm
     if (DOM.speakBtn) {
         DOM.speakBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Ngăn sự kiện lật thẻ
             if (!currentDeck) return;
             const textToSpeak = currentDeck.items[currentCardIndex].term;
             if (textToSpeak && 'speechSynthesis' in window) {
@@ -531,10 +232,10 @@ function setupEventListeners() {
         });
     }
 
-    // 4. Xóa / Ghi nhớ thẻ (CHỈ XÁC NHẬN, KHÔNG CHUYỂN THẺ)
+    // 4. Ghi nhớ thẻ (Chỉ đổi màu, KHÔNG tự động qua thẻ mới)
     if (DOM.masterBtn) {
         DOM.masterBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Ngăn sự kiện lật thẻ
             if (currentDeck) {
                 const wordId = currentDeck.items[currentCardIndex].id;
                 if (!masteredCards.includes(wordId)) {
@@ -542,24 +243,23 @@ function setupEventListeners() {
                     localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
                     updateDashboardStats();
                 }
-                updateCardStatusUI(); // Cập nhật màu nút ngay lập tức
+                updateCardStatusUI();
             }
         });
     }
 
     if (DOM.notMasteredBtn) {
         DOM.notMasteredBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Ngăn sự kiện lật thẻ
             if (currentDeck) {
                 const wordId = currentDeck.items[currentCardIndex].id;
                 const index = masteredCards.indexOf(wordId);
-                // Bỏ thẻ khỏi danh sách đã thuộc nếu nó đang nằm trong đó
                 if (index > -1) {
                     masteredCards.splice(index, 1); 
                     localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
                     updateDashboardStats();
                 }
-                updateCardStatusUI(); // Cập nhật màu nút ngay lập tức
+                updateCardStatusUI();
             }
         });
     }
@@ -586,7 +286,7 @@ function setupEventListeners() {
         });
     }
 
-    // 7. Tìm kiếm động
+    // 7. Tìm kiếm
     if (DOM.searchInput) {
         DOM.searchInput.addEventListener('input', (e) => {
             const kw = e.target.value.toLowerCase().trim();
