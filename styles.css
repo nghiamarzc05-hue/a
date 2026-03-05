@@ -607,3 +607,139 @@ body {
         grid-template-columns: 1fr; /* Trở lại 1 cột trên mobile */
     }
 }
+/* =========================================
+   GIAO DIỆN TỐI ƯU MOBILE (NATIVE APP FEEL)
+========================================= */
+
+@media (max-width: 768px) {
+    /* 1. Xóa lề thừa, cho app tràn viền */
+    body {
+        background-color: var(--bg-main);
+        overflow-x: hidden;
+    }
+    
+    .main-content {
+        padding: 15px 15px 110px 15px !important; /* Tạo nhiều không gian trống ở dưới hơn cho Bottom Nav */
+    }
+
+    /* 2. Top Bar gọn gàng hơn */
+    .top-bar {
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    #viewTitle {
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+
+    /* 3. Flashcard chiếm trọn tỷ lệ vàng */
+    .study-container {
+        display: flex;
+        flex-direction: column;
+        height: 70vh; /* Chiếm 70% chiều cao màn hình */
+        max-height: 500px;
+    }
+
+    .flashcard-wrapper {
+        flex-grow: 1;
+        width: 100%;
+        height: auto;
+        margin: 10px 0 30px 0;
+    }
+
+    .card-face {
+        border-radius: 28px; /* Bo góc cực sâu chuẩn iOS */
+        padding: 30px 20px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08); /* Bóng đổ mềm hơn */
+        border: none;
+    }
+
+    /* Tối ưu cỡ chữ trên thẻ để không bị tràn dòng */
+    .card-front h2 { 
+        font-size: 2.2rem; 
+        line-height: 1.2;
+    }
+    .card-back h3 { 
+        font-size: 1.6rem; 
+        line-height: 1.3;
+    }
+    .example-box {
+        padding: 12px;
+        font-size: 0.95rem;
+    }
+
+    /* 4. Nút bấm (Touch-friendly) to, dễ chạm */
+    .study-controls {
+        gap: 15px; /* Giãn cách các nút ra một chút */
+    }
+    .control-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    #speakBtn {
+        width: 65px; /* Nút loa to nhất */
+        height: 65px;
+        font-size: 1.6rem;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+    }
+
+    /* 5. Floating Bottom Navigation (Thanh điều hướng lơ lửng, kính mờ) */
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 15px; /* Nâng lên khỏi đáy */
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 400px;
+        background: rgba(255, 255, 255, 0.75) !important; /* Kính mờ siêu đẹp */
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 30px;
+        padding: 10px 5px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    
+    [data-theme="dark"] .bottom-nav {
+        background: rgba(31, 41, 55, 0.75) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .bottom-nav .nav-item {
+        padding: 8px 0;
+        flex: 1;
+    }
+
+    /* Hiệu ứng khi tab đang được chọn (Active) */
+    .bottom-nav .nav-item.active {
+        color: var(--primary);
+    }
+    .bottom-nav .nav-item.active i {
+        background: rgba(99, 102, 241, 0.15); /* Tạo vệt sáng sau icon */
+        padding: 8px 15px;
+        border-radius: 20px;
+        transform: translateY(-2px);
+    }
+
+    /* 6. Tối ưu danh sách bài học (Deck List) */
+    .deck-item {
+        padding: 20px 15px;
+        border-radius: 20px;
+        margin-bottom: 12px;
+        background: var(--bg-card);
+    }
+    
+    .stats-grid {
+        gap: 12px;
+    }
+    .stat-card {
+        padding: 15px;
+        border-radius: 18px;
+    }
+    .stat-card h3 {
+        font-size: 1.3rem;
+    }
+}
