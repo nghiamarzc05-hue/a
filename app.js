@@ -1,6 +1,6 @@
-// =========================================
-// FILE: app.js - BẢN FIX LỖI (AN TOÀN & HOÀN CHỈNH 100%)
-// =========================================
+// ========================================================
+// FILE: app.2.4.4.js - LOGIC MỚI CHO GIAO DIỆN ĐỆ NHỊ WEB
+// ========================================================
 
 let allDecks = [];
 let currentDeck = null;
@@ -8,436 +8,360 @@ let currentCardIndex = 0;
 let isFlipped = false;
 let masteredCards = [];
 let currentStreak = 0;
-let DOM = {};
 let englishVoice = null;
 
-// 1. Tải Service Worker (PWA)
+// Hàm tiện ích lấy element
+const $ = id => document.getElementById(id);
+
+// 1. TẢI SERVICE WORKER (PWA)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW config error: ', err));
+        navigator.serviceWorker.register('./service-worker.js').catch(err => console.log('SW error:', err));
     });
 }
 
-// 2. KHỞI TẠO GIỌNG ĐỌC (ÉP TÌM GIỌNG ANH MỸ)
+// 2. KHỞI TẠO GIỌNG ĐỌC MỸ CHUẨN
 function initVoices() {
     if (!('speechSynthesis' in window)) return;
-    let voices = window.speechSynthesis.getVoices();
-    
-    const findEnglishVoice = (voiceList) => {
-        let voice = voiceList.find(v => v.lang.includes('en-US') && (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Alex')));
-        if (!voice) voice = voiceList.find(v => v.lang === 'en-US' || v.lang === 'en_US');
-        if (!voice) voice = voiceList.find(v => v.lang.startsWith('en'));
-        return voice;
+    const findVoice = () => {
+        let voices = window.speechSynthesis.getVoices();
+        englishVoice = voices.find(v => v.lang.includes('en-US') && (v.name.includes('Google') || v.name.includes('Samantha'))) || 
+                       voices.find(v => v.lang.startsWith('en-US')) || 
+                       voices.find(v => v.lang.startsWith('en'));
     };
-
-    if (voices.length > 0) englishVoice = findEnglishVoice(voices);
-
-    window.speechSynthesis.onvoiceschanged = () => {
-        voices = window.speechSynthesis.getVoices();
-        englishVoice = findEnglishVoice(voices);
-    };
+    findVoice();
+    window.speechSynthesis.onvoiceschanged = findVoice;
 }
 
-// 3. HÀM ĐỌC TỪ VỰNG
+// 3. HÀM PHÁT ÂM TIẾNG ANH
 function playWordSound() {
-    if (!currentDeck || !currentDeck.items) return;
-    const textToSpeak = currentDeck.items[currentCardIndex].term;
-    
+    if (!currentDeck) return;
+    const text = currentDeck.items[currentCardIndex].term;
     if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Xóa luồng đọc bị kẹt
-        
-        let utterance = new SpeechSynthesisUtterance(textToSpeak);
+        window.speechSynthesis.cancel();
+        let utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
         utterance.rate = 0.9;
         if (englishVoice) utterance.voice = englishVoice;
-        
-        setTimeout(() => {
-            window.speechSynthesis.speak(utterance);
-        }, 50); // Delay 50ms chống kẹt trên iOS/Android
+        setTimeout(() => { window.speechSynthesis.speak(utterance); }, 50);
     }
 }
 
-// 4. KHỞI CHẠY ỨNG DỤNG
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        masteredCards = JSON.parse(localStorage.getItem('masteredCards')) || [];
-    } catch (e) {
-        masteredCards = [];
+// 4. LOGIC CHUỖI NGÀY HỌC (STREAK) - Gắn vào Trang chủ
+function checkStreak() {
+    const today = new Date().toDateString(); 
+    let lastDate = localStorage.getItem('lastStudyDate');
+    currentStreak = parseInt(localStorage.getItem('currentStreak')) || 0;
+    
+    if (lastDate) {
+        const diff = Math.ceil(Math.abs(new Date(today) - new Date(lastDate)) / (1000 * 60 * 60 * 24));
+        if (diff > 1) { currentStreak = 0; localStorage.setItem('currentStreak', 0); }
     }
+    
+    // Hiển thị Streak lên Card "Ôn tập" của Đệ Nhị Web
+    const reviewTitle = document.querySelector('#btnReview .fTitle');
+    if (reviewTitle) reviewTitle.innerText = 'Chuỗi ngày học';
+    if ($('focusReviewCount')) $('focusReviewCount').innerText = `${currentStreak} ngày 🔥`;
+}
 
-    initDOM();
+function noiLua() {
+    const today = new Date().toDateString();
+    if (localStorage.getItem('lastStudyDate') !== today) {
+        currentStreak++;
+        localStorage.setItem('currentStreak', currentStreak);
+        localStorage.setItem('lastStudyDate', today);
+        checkStreak(); // Update UI ngay lập tức
+        if (typeof confetti !== 'undefined') confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    }
+}
+
+// 5. KHỞI CHẠY TOÀN BỘ ỨNG DỤNG
+document.addEventListener('DOMContentLoaded', () => {
+    try { masteredCards = JSON.parse(localStorage.getItem('masteredCards')) || []; } catch (e) { masteredCards = []; }
     initVoices();
-    setupTheme(); 
-    checkStreak(); 
-    mergeData(); // Đã fix lỗi mất dữ liệu ở hàm này
-    renderDeckList(allDecks, DOM.deckList);
+    setupTheme();
+    checkStreak();
+    mergeData();
+    renderDeckList(allDecks);
     setupNavigation();
     setupEventListeners();
     updateDashboardStats();
 });
 
-function initDOM() {
-    DOM = {
-        views: document.querySelectorAll('.view-section'),
-        navItems: document.querySelectorAll('.nav-item, .sidebar-nav .nav-item'),
-        deckList: document.getElementById('deckList'),
-        libraryList: document.getElementById('libraryList'),
-        searchInput: document.getElementById('searchInput'),
-        
-        flashcard: document.getElementById('flashcard'),
-        cardWord: document.getElementById('cardWord'),
-        cardIpa: document.getElementById('cardIpa'),
-        cardMeaning: document.getElementById('cardMeaning'),
-        cardExampleEn: document.getElementById('cardExampleEn'),
-        cardExampleVi: document.getElementById('cardExampleVi'),
-        cardPos: document.getElementById('cardPos'),
-        cardCounter: document.getElementById('cardCounter'),
-        
-        prevBtn: document.getElementById('prevBtn'),
-        nextBtn: document.getElementById('nextBtn'),
-        speakBtn: document.getElementById('speakBtn'),
-        masterBtn: document.getElementById('masterBtn'),
-        notMasteredBtn: document.getElementById('notMasteredBtn'),
-        
-        statMastered: document.getElementById('statMastered'),
-        statProgress: document.getElementById('statProgress'),
-        statStreak: document.getElementById('statStreak'),
-        resetStatsBtn: document.getElementById('resetStatsBtn'),
-        themeSwitch: document.getElementById('themeSwitch'),
-        viewTitle: document.getElementById('viewTitle')
-    };
-}
-
-function checkStreak() {
-    const today = new Date().toDateString(); 
-    let lastStudyDate = localStorage.getItem('lastStudyDate');
-    currentStreak = parseInt(localStorage.getItem('currentStreak')) || 0;
-
-    if (lastStudyDate) {
-        const lastDate = new Date(lastStudyDate);
-        const todayDate = new Date(today);
-        const diffTime = Math.abs(todayDate - lastDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays > 1) {
-            currentStreak = 0;
-            localStorage.setItem('currentStreak', currentStreak);
-        }
-    }
-    if(DOM.statStreak) DOM.statStreak.innerText = `${currentStreak} ngày`;
-}
-
-function noiLua() {
-    const today = new Date().toDateString();
-    let lastStudyDate = localStorage.getItem('lastStudyDate');
-    
-    if (lastStudyDate !== today) {
-        currentStreak++;
-        localStorage.setItem('currentStreak', currentStreak);
-        localStorage.setItem('lastStudyDate', today);
-        
-        if(DOM.statStreak) DOM.statStreak.innerText = `${currentStreak} ngày`;
-        
-        if (typeof confetti !== 'undefined') {
-            confetti({
-                particleCount: 150,
-                spread: 80,
-                origin: { y: 0.6 },
-                colors: ['#FF725B', '#FFCD1F', '#23B26D']
-            });
-        }
-    }
-}
-
-function setupTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    if (DOM.themeSwitch) {
-        DOM.themeSwitch.checked = (savedTheme === 'dark');
-    }
-}
-
-// ĐÃ SỬA LỖI MẤT DỮ LIỆU Ở ĐÂY
+// 6. QUÉT TOÀN BỘ DỮ LIỆU TỪ VỰNG TỰ ĐỘNG (Không giới hạn)
 function mergeData() {
     allDecks = [];
-    if (typeof group_1_decks !== 'undefined') allDecks = allDecks.concat(group_1_decks);
-    if (typeof group_2_decks !== 'undefined') allDecks = allDecks.concat(group_2_decks);
-    if (typeof group_3_decks !== 'undefined') allDecks = allDecks.concat(group_3_decks);
-    if (typeof group_4_decks !== 'undefined') allDecks = allDecks.concat(group_4_decks);
-    if (typeof group_5_decks !== 'undefined') allDecks = allDecks.concat(group_5_decks);
-    if (typeof group_6_decks !== 'undefined') allDecks = allDecks.concat(group_6_decks);
-    if (typeof group_7_decks !== 'undefined') allDecks = allDecks.concat(group_7_decks);
-    if (typeof group_8_decks !== 'undefined') allDecks = allDecks.concat(group_8_decks);
-    if (typeof group_9_decks !== 'undefined') allDecks = allDecks.concat(group_9_decks);
-    if (typeof group_10_decks !== 'undefined') allDecks = allDecks.concat(group_10_decks);
-    if (typeof group_11_decks !== 'undefined') allDecks = allDecks.concat(group_11_decks);
+    let i = 1;
+    while (true) {
+        let name = `group_${i}_decks`;
+        if (typeof window[name] !== 'undefined') {
+            allDecks = allDecks.concat(window[name]);
+            i++;
+        } else {
+            break; 
+        }
+    }
 }
 
-function renderDeckList(decksToRender, targetDOM) {
-    if (!targetDOM) return;
-    targetDOM.innerHTML = '';
+// 7. HIỂN THỊ DỮ LIỆU LÊN GIAO DIỆN
+function renderDeckList(decksToRender) {
+    const libGrid = $('deckGrid');
+    const sideList = $('deckList');
+    if (libGrid) libGrid.innerHTML = '';
+    if (sideList) sideList.innerHTML = '';
     
     decksToRender.forEach(deck => {
-        const totalItems = deck.items ? deck.items.length : 0;
-        const li = document.createElement('li');
-        li.className = 'deck-item';
-        li.innerHTML = `
-            <div class="deck-info">
-                <strong>${deck.ten}</strong>
-                <span class="deck-meta">${totalItems} thuật ngữ</span>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
-        `;
-        li.addEventListener('click', () => loadDeck(deck));
-        targetDOM.appendChild(li);
+        // Gắn vào Thư viện chính
+        if (libGrid) {
+            const card = document.createElement('div');
+            card.className = 'libCard deckGridCard';
+            card.innerHTML = `<div class="deckGridTop"><div class="deckGridName">${deck.ten}</div></div><div class="deckGridMeta">${deck.items.length} từ vựng</div>`;
+            card.addEventListener('click', () => loadDeck(deck));
+            libGrid.appendChild(card);
+        }
+        // Gắn vào Sidebar bên trái
+        if (sideList) {
+            const btn = document.createElement('button');
+            btn.className = 'deckItem';
+            btn.innerHTML = `<div class="deckDot"></div><span class="txt">${deck.ten}</span><span class="num">${deck.items.length}</span>`;
+            btn.addEventListener('click', () => loadDeck(deck));
+            sideList.appendChild(btn);
+        }
     });
 }
 
+function updateDashboardStats() {
+    let total = 0; 
+    allDecks.forEach(d => total += d.items.length);
+    
+    // Sửa Card "Học từ mới" thành "Từ đã thuộc"
+    const newTitle = document.querySelector('#btnLearnNew .fTitle');
+    if (newTitle) newTitle.innerText = 'Đã thuộc (Mastered)';
+    if ($('focusNewCount')) $('focusNewCount').innerText = `${masteredCards.length} / ${total} từ`;
+    if ($('countAll')) $('countAll').innerText = total;
+}
+
+// 8. ĐIỀU HƯỚNG CHUYỂN TAB TRONG ĐỆ NHỊ WEB
 function setupNavigation() {
-    DOM.navItems.forEach(btn => {
+    const navButtons = document.querySelectorAll('.navItem, .sideItem');
+    navButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const targetView = e.currentTarget.getAttribute('data-view');
+            let viewName = btn.dataset.view || btn.dataset.deck; 
+            if(viewName === '__all' || viewName === '__fav') return;
             
-            DOM.navItems.forEach(b => b.classList.remove('active'));
-            DOM.views.forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
             
-            document.querySelectorAll(`[data-view="${targetView}"]`).forEach(b => b.classList.add('active'));
+            let targetId = 'view' + viewName.charAt(0).toUpperCase() + viewName.slice(1);
+            if($(targetId)) $(targetId).classList.remove('hidden');
             
-            const viewEl = document.getElementById(targetView + 'View');
-            if (viewEl) viewEl.classList.add('active');
-
-            if (DOM.viewTitle) {
-                const titles = {
-                    'dashboard': 'Trang chủ',
-                    'study': currentDeck ? `Học: ${currentDeck.ten}` : 'Học tập',
-                    'library': 'Tìm kiếm bài học',
-                    'settings': 'Cài đặt'
-                };
-                DOM.viewTitle.innerText = titles[targetView] || 'Flashcards';
-            }
-
-            if (targetView === 'library') {
-                renderDeckList(allDecks, DOM.libraryList);
-                if(DOM.searchInput) DOM.searchInput.value = '';
-            }
+            document.querySelectorAll('.navItem, .sideItem').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Xử lý tab Thư viện
+            if (viewName === 'library') renderDeckList(allDecks);
         });
     });
 }
 
+// 9. LOGIC HỌC THẺ
 function loadDeck(deck) {
     if (!deck || !deck.items || deck.items.length === 0) return;
-    currentDeck = deck;
+    currentDeck = deck; 
     currentCardIndex = 0;
     
-    document.querySelector('[data-view="study"]').click();
+    // Tự động chuyển qua tab Học (Learn)
+    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+    $('viewLearn').classList.remove('hidden');
+    document.querySelectorAll('.navItem').forEach(b => b.classList.remove('active'));
+    if(document.querySelector(`.navItem[data-view="learn"]`)) {
+        document.querySelector(`.navItem[data-view="learn"]`).classList.add('active');
+    }
+    
+    if($('learnDeckTitle')) $('learnDeckTitle').innerText = deck.ten;
+    if($('panelDeckName')) $('panelDeckName').innerText = deck.ten;
+    if($('homeDeckName')) $('homeDeckName').innerText = deck.ten; // Cập nhật thẻ Resume
+    
     showCard();
 }
 
 function showCard() {
-    if (!currentDeck || !currentDeck.items) return;
+    if (!currentDeck) return;
+    const item = currentDeck.items[currentCardIndex];
     
-    const cardData = currentDeck.items[currentCardIndex];
-    isFlipped = false;
-    DOM.flashcard.classList.remove('is-flipped');
-
+    isFlipped = false; 
+    if($('flipInner')) $('flipInner').classList.remove('isFlipped');
+    
     setTimeout(() => {
-        if(DOM.cardWord) DOM.cardWord.innerText = cardData.term || '';
-        if(DOM.cardIpa) DOM.cardIpa.innerText = cardData.ipa || '';
-        if(DOM.cardCounter) DOM.cardCounter.innerText = `${currentCardIndex + 1} / ${currentDeck.items.length}`;
+        // Mặt trước
+        if($('word')) $('word').innerText = item.term;
+        if($('phonetic')) $('phonetic').innerText = item.ipa || '';
         
-        if(DOM.cardPos) DOM.cardPos.innerText = `${cardData.pos || 'N/A'}`;
-        if(DOM.cardMeaning) DOM.cardMeaning.innerText = cardData.meaning_vi || '';
-        if(DOM.cardExampleEn) DOM.cardExampleEn.innerText = cardData.example || '';
-        if(DOM.cardExampleVi) DOM.cardExampleVi.innerText = cardData.example_vi || '';
+        // Mặt sau
+        if($('wordBack')) $('wordBack').innerText = item.term;
+        if($('phoneticBack')) $('phoneticBack').innerText = item.ipa || '';
+        if($('meaning')) $('meaning').innerText = item.meaning_vi;
+        if($('example')) $('example').innerText = item.example || '';
+        
+        // Đếm số thứ tự
+        const posText = `${currentCardIndex + 1} / ${currentDeck.items.length}`;
+        if($('learnPos')) $('learnPos').innerText = posText;
+        if($('progressText')) $('progressText').innerText = posText;
+        if($('statWords')) $('statWords').innerText = posText;
+        
+        // Cập nhật vòng Progress
+        if($('statPct')) $('statPct').innerText = Math.round(((currentCardIndex + 1) / currentDeck.items.length) * 100);
         
         updateCardStatusUI();
     }, 150);
 }
 
+// Cập nhật nút Ngôi Sao (Yêu thích/Đã thuộc)
 function updateCardStatusUI() {
     if (!currentDeck) return;
-    const cardId = currentDeck.items[currentCardIndex].id;
-    const isMastered = masteredCards.includes(cardId);
+    const id = currentDeck.items[currentCardIndex].id;
+    const isMastered = masteredCards.includes(id);
     
-    if (DOM.masterBtn && DOM.notMasteredBtn) {
+    const btnStar = $('btnStar');
+    if (btnStar) {
         if (isMastered) {
-            DOM.masterBtn.style.color = 'var(--success)';
-            DOM.masterBtn.style.borderColor = 'var(--success)';
-            DOM.masterBtn.style.backgroundColor = 'rgba(35, 178, 109, 0.1)';
-            DOM.notMasteredBtn.style.color = '';
-            DOM.notMasteredBtn.style.borderColor = '';
-            DOM.notMasteredBtn.style.backgroundColor = '';
+            btnStar.style.color = '#f59e0b'; // Màu vàng 
+            btnStar.style.background = 'rgba(245, 158, 11, 0.15)';
         } else {
-            DOM.masterBtn.style.color = '';
-            DOM.masterBtn.style.borderColor = '';
-            DOM.masterBtn.style.backgroundColor = '';
-            DOM.notMasteredBtn.style.color = 'var(--danger)';
-            DOM.notMasteredBtn.style.borderColor = 'var(--danger)';
-            DOM.notMasteredBtn.style.backgroundColor = 'rgba(255, 114, 91, 0.1)';
+            btnStar.style.color = '';
+            btnStar.style.background = '';
         }
     }
 }
 
-// =========================================
-// 8. TẤT CẢ SỰ KIỆN TƯƠNG TÁC
-// =========================================
+// 10. TẤT CẢ SỰ KIỆN NÚT BẤM VÀ PHÍM TẮT
 function setupEventListeners() {
     
-    // --- CHUỘT: LẬT THẺ & TỰ ĐỘNG ĐỌC ÂM THANH ---
-    if (DOM.flashcard) {
-        DOM.flashcard.addEventListener('click', (e) => {
-            if (e.target.closest('.control-btn')) return; 
-            if (window.getSelection().toString().length > 0) return; 
-            
-            DOM.flashcard.classList.toggle('is-flipped');
+    // Click Thẻ -> Lật & Đọc
+    const flipCard = $('flipCard');
+    if (flipCard) {
+        flipCard.addEventListener('click', (e) => {
+            if (e.target.closest('button') || window.getSelection().toString().length > 0) return;
+            $('flipInner').classList.toggle('isFlipped');
             isFlipped = !isFlipped;
-            
-            playWordSound(); // Gọi hàm đọc
-        });
-    }
-
-    // --- BÀN PHÍM LAPTOP: PHÍM CÁCH = LẬT + ĐỌC ---
-    document.addEventListener('keydown', (e) => {
-        const studyView = document.getElementById('studyView');
-        // Chỉ nhận phím tắt nếu đang ở màn hình học
-        if (!studyView || !studyView.classList.contains('active')) return;
-
-        if (e.code === 'Space') { 
-            e.preventDefault(); // Ngăn trang tự cuộn xuống
-            DOM.flashcard.classList.toggle('is-flipped');
-            isFlipped = !isFlipped;
-            playWordSound(); 
-        } else if (e.key === 'ArrowRight') { 
-            if(DOM.nextBtn) DOM.nextBtn.click();
-        } else if (e.key === 'ArrowLeft') { 
-            if(DOM.prevBtn) DOM.prevBtn.click();
-        } else if (e.key === 'Enter') {
-            if(DOM.masterBtn) DOM.masterBtn.click();
-        }
-    });
-
-    // --- NÚT LOA THỦ CÔNG ---
-    if (DOM.speakBtn) {
-        DOM.speakBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
             playWordSound();
         });
     }
 
-    if (DOM.nextBtn) {
-        DOM.nextBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            noiLua(); // CHÂM LỬA STREAK
-            if (currentDeck && currentCardIndex < currentDeck.items.length - 1) {
+    // Bàn phím (Space = Lật + Đọc)
+    document.addEventListener('keydown', (e) => {
+        const viewLearn = $('viewLearn');
+        if (!viewLearn || viewLearn.classList.contains('hidden')) return;
+
+        if (e.code === 'Space') { 
+            e.preventDefault(); 
+            $('flipInner').classList.toggle('isFlipped');
+            isFlipped = !isFlipped;
+            playWordSound(); 
+        } else if (e.key === 'ArrowRight') { 
+            if($('btnNext')) $('btnNext').click();
+        } else if (e.key === 'ArrowLeft') { 
+            if($('btnPrev')) $('btnPrev').click();
+        } else if (e.key === 'Enter') {
+            if($('btnStar')) $('btnStar').click(); // Enter = Đánh dấu đã thuộc
+        }
+    });
+
+    // Nút Next / Prev / Flip
+    if ($('btnNext')) {
+        $('btnNext').addEventListener('click', (e) => {
+            e.stopPropagation(); noiLua();
+            if (currentCardIndex < currentDeck.items.length - 1) {
                 currentCardIndex++;
                 showCard();
             } else {
-                if (typeof confetti !== 'undefined') triggerConfetti();
+                if (typeof confetti !== 'undefined') confetti({ particleCount: 200, spread: 90 });
             }
         });
     }
 
-    if (DOM.prevBtn) {
-        DOM.prevBtn.addEventListener('click', (e) => {
+    if ($('btnPrev')) {
+        $('btnPrev').addEventListener('click', (e) => {
             e.stopPropagation();
-            if (currentDeck && currentCardIndex > 0) {
-                currentCardIndex--;
-                showCard();
-            }
+            if (currentCardIndex > 0) { currentCardIndex--; showCard(); }
         });
     }
-
-    if (DOM.masterBtn) {
-        DOM.masterBtn.addEventListener('click', (e) => {
+    
+    if ($('btnFlip')) {
+        $('btnFlip').addEventListener('click', (e) => {
             e.stopPropagation();
-            noiLua();
-            if (currentDeck) {
-                const wordId = currentDeck.items[currentCardIndex].id;
-                if (!masteredCards.includes(wordId)) {
-                    masteredCards.push(wordId);
-                    localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
-                    updateDashboardStats();
-                }
-                updateCardStatusUI();
+            $('flipInner').classList.toggle('isFlipped');
+            isFlipped = !isFlipped;
+            playWordSound();
+        });
+    }
+
+    // Loa US và UK trên Giao diện
+    if ($('btnSpeakUS')) $('btnSpeakUS').addEventListener('click', (e) => { e.stopPropagation(); playWordSound(); });
+    if ($('btnSpeakUK')) $('btnSpeakUK').addEventListener('click', (e) => { e.stopPropagation(); playWordSound(); });
+
+    // Đánh dấu đã thuộc (Nút Ngôi sao)
+    if ($('btnStar')) {
+        $('btnStar').addEventListener('click', (e) => {
+            e.stopPropagation(); noiLua();
+            const id = currentDeck.items[currentCardIndex].id;
+            const idx = masteredCards.indexOf(id);
+            if (idx > -1) {
+                masteredCards.splice(idx, 1); 
+            } else {
+                masteredCards.push(id); 
             }
+            localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
+            updateDashboardStats();
+            updateCardStatusUI();
         });
     }
 
-    if (DOM.notMasteredBtn) {
-        DOM.notMasteredBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentDeck) {
-                const wordId = currentDeck.items[currentCardIndex].id;
-                const index = masteredCards.indexOf(wordId);
-                if (index > -1) {
-                    masteredCards.splice(index, 1); 
-                    localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
-                    updateDashboardStats();
-                }
-                updateCardStatusUI();
-            }
+    // Nút Tiếp tục học ở Trang chủ
+    if ($('btnContinue')) {
+        $('btnContinue').addEventListener('click', () => {
+            if (currentDeck) loadDeck(currentDeck);
+            else if (allDecks.length > 0) loadDeck(allDecks[0]);
         });
     }
-
-    if (DOM.themeSwitch) {
-        DOM.themeSwitch.addEventListener('change', (e) => {
-            const newTheme = e.target.checked ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-        });
-    }
-
-    if (DOM.resetStatsBtn) {
-        DOM.resetStatsBtn.addEventListener('click', () => {
-            if (confirm("Xóa toàn bộ tiến độ học tập và chuỗi ngày?")) {
-                masteredCards = [];
-                localStorage.removeItem('masteredCards');
-                localStorage.removeItem('currentStreak');
-                localStorage.removeItem('lastStudyDate');
-                currentStreak = 0;
-                if(DOM.statStreak) DOM.statStreak.innerText = `0 ngày`;
-                updateDashboardStats();
-                if(currentDeck) updateCardStatusUI();
-                alert("Đã xóa dữ liệu thành công!");
-            }
-        });
-    }
-
-    if (DOM.searchInput) {
-        DOM.searchInput.addEventListener('input', (e) => {
+    
+    // Tìm kiếm trong Thư viện
+    if ($('libTìm')) {
+        $('libTìm').addEventListener('input', (e) => {
             const kw = e.target.value.toLowerCase().trim();
-            if (kw === '') {
-                renderDeckList(allDecks, DOM.libraryList);
-                return;
+            const filtered = allDecks.filter(d => d.ten.toLowerCase().includes(kw));
+            renderDeckList(filtered);
+        });
+    }
+    
+    // Tìm kiếm Global
+    if ($('globalTìm')) {
+        $('globalTìm').addEventListener('input', (e) => {
+            const kw = e.target.value.toLowerCase().trim();
+            const filtered = allDecks.filter(d => d.ten.toLowerCase().includes(kw));
+            renderDeckList(filtered);
+            // Tự động nhảy sang tab Thư viện để xem kết quả
+            if($('globalTìm').value !== "") {
+                document.querySelector(`.navItem[data-view="library"]`).click();
             }
-            const filtered = allDecks.filter(deck => 
-                deck.ten.toLowerCase().includes(kw)
-            );
-            renderDeckList(filtered, DOM.libraryList);
         });
     }
 }
 
-function updateDashboardStats() {
-    if (DOM.statMastered) DOM.statMastered.innerText = masteredCards.length;
-    let totalWords = 0;
-    allDecks.forEach(deck => {
-        if (deck.items) totalWords += deck.items.length;
-    });
-    if (totalWords > 0 && DOM.statProgress) {
-        const percent = Math.round((masteredCards.length / totalWords) * 100);
-        DOM.statProgress.innerText = `${percent}%`;
+// 11. ĐỔI MÀU GIAO DIỆN (SÁNG/TỐI)
+function setupTheme() {
+    const theme = localStorage.getItem('theme') || 'light';
+    document.body.setAttribute('data-theme', theme);
+    
+    if ($('themeLight')) {
+        $('themeLight').addEventListener('click', () => {
+            document.body.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+        });
     }
-}
-
-function triggerConfetti() {
-    if (typeof confetti !== 'undefined') {
-        confetti({
-            particleCount: 150,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: ['#4255FF', '#23B26D', '#FFCD1F', '#FF725B']
+    if ($('themeDark')) {
+        $('themeDark').addEventListener('click', () => {
+            document.body.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
         });
     }
 }
