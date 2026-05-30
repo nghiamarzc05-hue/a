@@ -5,11 +5,9 @@ PWA web app học từ vựng tiếng Anh. Pure HTML/CSS/Vanilla JS, không fram
 
 ## File structure
 - `index.html` — UI chính, load tất cả script
-- `styles.css` — toàn bộ styling
-- `app.js` — logic chính: navigation, flashcard, TTS, localStorage
-- `group_N.js` (N = 1..11) — dữ liệu từ vựng (N có thể mở rộng tới 100)
-- `manifest.json` — PWA manifest
-- `sw.js` — Service Worker cho offline
+- `css/styles.css` — toàn bộ styling
+- `js/app.js` — logic chính: navigation, flashcard, SRS, TTS, localStorage
+- `data/group_N.js` (N = 1..11) — dữ liệu từ vựng (N có thể mở rộng tới 100)
 
 ## Data format (group_N.js)
 ```js
@@ -32,5 +30,5 @@ const group_N_decks = [
 - Để test: mở `index.html` bằng Live Server hoặc browser trực tiếp
 
 ## Thêm bộ từ vựng mới
-1. Tạo file `group_N.js` theo đúng format trên
-2. Thêm `<script src="group_N.js"></script>` vào `index.html` trước `app.js`
+1. Tạo file `data/group_N.js` theo đúng format trên
+2. Thêm `<script src="data/group_N.js"></script>` vào `index.html` trước `js/app.js`

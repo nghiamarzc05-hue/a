@@ -10,7 +10,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div id="app">
@@ -230,7 +230,10 @@
                 <div id="studyContainer" style="display:none">
                     <div class="study-topbar">
                         <button class="study-back-btn" id="studyBackBtn"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                        <span class="study-mode-badge" id="studyModeBadge">Manual</span>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <button class="study-fav-btn" id="studyFavBtn"><i class="fa-regular fa-star"></i></button>
+                            <span class="study-mode-badge" id="studyModeBadge">Manual</span>
+                        </div>
                     </div>
                     <div class="study-inner">
                         <div class="flashcard-wrapper">
@@ -280,57 +283,265 @@
             </section>
 
             <section id="libraryView" class="view-section">
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="Tìm kiếm từ khóa...">
+
+                <!-- DECK LIST -->
+                <div id="libListView">
+                    <div class="lib-topbar">
+                        <div class="search-box" style="flex:1;margin-bottom:0">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Search decks...">
+                        </div>
+                        <button class="lib-new-btn" id="libNewDeckBtn"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="lib-import-bar">
+                        <button class="lib-action-btn" id="libImportBtn"><i class="fa-solid fa-file-import"></i> Import CSV</button>
+                        <input type="file" id="libCsvInput" accept=".csv" style="display:none">
+                    </div>
+                    <ul class="deck-list" id="libraryList"></ul>
                 </div>
-                <ul class="deck-list" id="libraryList"></ul>
+
+                <!-- DECK DETAIL -->
+                <div id="libDetailView" style="display:none">
+                    <div class="study-topbar">
+                        <button class="study-back-btn" id="libDetailBack"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <div style="display:flex;gap:8px">
+                            <button class="lib-icon-btn" id="libExportBtn" title="Export CSV"><i class="fa-solid fa-file-export"></i></button>
+                            <button class="lib-icon-btn lib-del-btn" id="libDeleteBtn" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <h3 id="libDetailTitle" class="lib-detail-title">-</h3>
+                    <div class="lib-detail-meta">
+                        <span id="libDetailTotal">0 words</span>
+                        <span>·</span>
+                        <span id="libDetailPct">0% learned</span>
+                    </div>
+                    <div class="lib-progress-bar"><div id="libProgressFill" class="lib-progress-fill"></div></div>
+
+                    <div class="lib-filter-row">
+                        <div class="search-box lib-search-sm">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="libWordSearch" placeholder="Search words...">
+                        </div>
+                        <select class="lib-select" id="libFilterSel">
+                            <option value="all">All</option>
+                            <option value="new">New</option>
+                            <option value="learned">Learned</option>
+                        </select>
+                        <select class="lib-select" id="libSortSel">
+                            <option value="default">Default</option>
+                            <option value="az">A → Z</option>
+                            <option value="za">Z → A</option>
+                        </select>
+                    </div>
+
+                    <ul class="word-list" id="libWordList"></ul>
+                    <button class="btn-continue" id="libStudyBtn" style="margin-top:16px">Study This Deck →</button>
+                </div>
+
+                <!-- CREATE DECK -->
+                <div id="libCreateView" style="display:none">
+                    <div class="study-topbar">
+                        <button class="study-back-btn" id="libCreateBack"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <span class="study-mode-badge">New Deck</span>
+                    </div>
+                    <div class="cfg-section" style="margin-bottom:14px;padding:12px 16px">
+                        <input type="text" id="newDeckNameInput" class="lib-text-input" placeholder="Deck name...">
+                    </div>
+                    <div id="newWordRows"></div>
+                    <button class="lib-add-word-btn" id="libAddWordBtn"><i class="fa-solid fa-plus"></i> Add Word</button>
+                    <button class="btn-continue" id="libSaveDeckBtn" style="margin-top:16px">Save Deck →</button>
+                </div>
+
             </section>
 
             <section id="settingsView" class="view-section">
-                <div class="settings-card stat-card" style="flex-direction: column; align-items: stretch; gap: 0;">
-                    <h3 style="margin-bottom: 5px;">Cài đặt ứng dụng</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 25px; font-size: 0.95rem;">Tùy chỉnh trải nghiệm học tập.</p>
-                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 25px;">
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                        <span style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">
-                            <i class="fa-solid fa-moon" style="margin-right: 12px; color: var(--primary);"></i> Chế độ Tối
-                        </span>
-                        <label class="theme-switch">
-                            <input type="checkbox" id="themeSwitch">
-                            <span class="slider round"></span>
-                        </label>
+
+                <!-- Learning -->
+                <p class="dash-label" style="margin-top:0">Learning</p>
+                <div class="stt-section">
+                    <div class="stt-row">
+                        <div class="stt-label"><i class="fa-solid fa-book-open"></i><span>Default Mode</span></div>
+                        <select class="lib-select" id="setDefaultMode">
+                            <option value="manual">Manual</option>
+                            <option value="auto">Auto</option>
+                        </select>
                     </div>
-
-                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 25px;">
-
-                    <button id="resetStatsBtn" class="btn-danger-outline" style="width: 100%; padding: 14px; border-radius: 14px; border: 2px solid var(--danger); background: transparent; color: var(--danger); font-size: 1.05rem; font-weight: bold; cursor: pointer; transition: 0.3s;">
-                        <i class="fa-solid fa-trash-can" style="margin-right: 8px;"></i> Xóa toàn bộ tiến độ
-                    </button>
+                    <div class="stt-row">
+                        <div class="stt-label"><i class="fa-solid fa-volume-high"></i><span>Auto Pronunciation</span></div>
+                        <label class="theme-switch"><input type="checkbox" id="setAutoPronounce" checked><span class="slider round"></span></label>
+                    </div>
+                    <div class="stt-row">
+                        <div class="stt-label"><i class="fa-solid fa-forward"></i><span>Auto Speed (sec)</span></div>
+                        <div class="cfg-stepper">
+                            <button class="step-btn" id="setSpeedDown">−</button>
+                            <span id="setSpeedVal">3s</span>
+                            <button class="step-btn" id="setSpeedUp">+</button>
+                        </div>
+                    </div>
+                    <div class="stt-row">
+                        <div class="stt-label"><i class="fa-solid fa-rotate"></i><span>Auto Repeat</span></div>
+                        <label class="theme-switch"><input type="checkbox" id="setAutoRepeat"><span class="slider round"></span></label>
+                    </div>
                 </div>
-                <p style="text-align: center; color: var(--text-muted); font-size: 0.78rem; margin-top: 20px;">© 2026 Tiến & Nghĩa — Flashcards Pro</p>
+
+                <!-- Appearance -->
+                <p class="dash-label">Appearance</p>
+                <div class="stt-section">
+                    <div class="stt-row">
+                        <div class="stt-label"><i class="fa-solid fa-moon"></i><span>Dark Mode</span></div>
+                        <label class="theme-switch"><input type="checkbox" id="themeSwitch"><span class="slider round"></span></label>
+                    </div>
+                    <div class="stt-row">
+                        <div class="stt-label"><i class="fa-solid fa-text-height"></i><span>Font Size</span></div>
+                        <select class="lib-select" id="setFontSize">
+                            <option value="normal">Medium</option>
+                            <option value="small">Small</option>
+                            <option value="large">Large</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Audio -->
+                <p class="dash-label">Audio</p>
+                <div class="stt-section">
+                    <div class="stt-row">
+                        <div class="stt-label"><i class="fa-solid fa-volume-high"></i><span>Pronunciation</span></div>
+                        <label class="theme-switch"><input type="checkbox" id="setSoundOn" checked><span class="slider round"></span></label>
+                    </div>
+                    <div class="stt-row">
+                        <div class="stt-label"><i class="fa-solid fa-flag-usa"></i><span>Voice</span></div>
+                        <select class="lib-select" id="setVoice">
+                            <option value="en-US">US English</option>
+                            <option value="en-GB">UK English</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Data -->
+                <p class="dash-label">Data Management</p>
+                <div class="stt-section">
+                    <button class="stt-action-btn" id="setExportCSV"><i class="fa-solid fa-file-export"></i> Export All CSV</button>
+                    <button class="stt-action-btn" id="setExportJSON"><i class="fa-solid fa-file-code"></i> Export JSON Backup</button>
+                    <button class="stt-action-btn" id="setImportData"><i class="fa-solid fa-file-import"></i> Import / Restore</button>
+                    <input type="file" id="setImportFile" accept=".json" style="display:none">
+                </div>
+                <div class="stt-section stt-danger-zone">
+                    <p class="stt-danger-label">Danger Zone</p>
+                    <button class="stt-danger-btn" id="resetStatsBtn"><i class="fa-solid fa-trash-can"></i> Reset All Progress</button>
+                </div>
+
+                <!-- About -->
+                <p class="dash-label">About</p>
+                <div class="stt-section">
+                    <div class="stt-row stt-row-static"><span>Version</span><span class="stt-value">1.0.0</span></div>
+                    <div class="stt-row stt-row-static"><span>Developer</span><span class="stt-value">Tiến & Nghĩa</span></div>
+                </div>
+
+                <p style="text-align:center;color:var(--text-muted);font-size:0.75rem;margin:20px 0 8px">© 2026 Tiến & Nghĩa — Flashcards Pro</p>
+
             </section>
 
             <section id="reviewView" class="view-section">
-                <div class="greeting">
-                    <h2 class="greeting-title">Ôn lại</h2>
-                    <p class="greeting-sub">Luyện lại những từ chưa thuộc.</p>
-                </div>
-                <div id="reviewReady" style="display:none">
-                    <div class="continue-card">
-                        <div class="continue-deck-banner" style="background:linear-gradient(135deg,#0E9898,#2AABAB)">
-                            <strong id="reviewCount">0 từ chưa thuộc</strong>
-                            <span>Tổng hợp từ tất cả chủ đề</span>
+
+                <!-- REVIEW DASHBOARD -->
+                <div id="reviewDashboard">
+                    <div class="dash-greeting">
+                        <h2 class="dash-title">Review</h2>
+                        <p class="dash-sub">Keep your memory sharp.</p>
+                    </div>
+
+                    <div class="rev-overview">
+                        <p class="dash-label" style="margin-top:0">Need Review Today</p>
+                        <div class="rev-ov-stats">
+                            <div class="rev-ov-stat"><div class="rev-dot rev-dot-red"></div><strong id="revDueCount">0</strong><label>Due</label></div>
+                            <div class="rev-ov-stat"><div class="rev-dot rev-dot-yellow"></div><strong id="revDifficultCount">0</strong><label>Difficult</label></div>
+                            <div class="rev-ov-stat"><div class="rev-dot rev-dot-green"></div><strong id="revMasteredCount">0</strong><label>Mastered</label></div>
                         </div>
-                        <button class="btn-primary" id="startReviewBtn" style="background:var(--teal)">Bắt đầu ôn tập →</button>
+                        <button class="btn-continue" id="startDueReviewBtn">Start Review →</button>
+                    </div>
+
+                    <p class="dash-label">Review Modes</p>
+                    <div class="rev-modes-grid">
+                        <div class="rev-mode-card" id="revDueBtn">
+                            <i class="fa-solid fa-calendar-check" style="color:var(--primary)"></i>
+                            <div><strong>Due Review</strong><span id="revDueLabel">0 words</span></div>
+                        </div>
+                        <div class="rev-mode-card" id="revDifficultBtn">
+                            <i class="fa-solid fa-fire" style="color:#F59E0B"></i>
+                            <div><strong>Difficult</strong><span id="revDifficultLabel">0 words</span></div>
+                        </div>
+                        <div class="rev-mode-card" id="revForgottenBtn">
+                            <i class="fa-solid fa-xmark" style="color:var(--danger)"></i>
+                            <div><strong>Forgotten</strong><span id="revForgottenLabel">0 words</span></div>
+                        </div>
+                        <div class="rev-mode-card" id="revFavoritesBtn">
+                            <i class="fa-solid fa-star" style="color:#F59E0B"></i>
+                            <div><strong>Favorites</strong><span id="revFavoritesLabel">0 words</span></div>
+                        </div>
+                    </div>
+
+                    <p class="dash-label">Today</p>
+                    <div class="focus-grid">
+                        <div class="focus-card">
+                            <i class="fa-solid fa-book-open" style="font-size:1.6rem;color:var(--primary);flex-shrink:0"></i>
+                            <div class="focus-info"><strong id="todayReviewed">0</strong><span>Reviewed</span></div>
+                        </div>
+                        <div class="focus-card">
+                            <i class="fa-solid fa-bullseye" style="font-size:1.6rem;color:var(--success);flex-shrink:0"></i>
+                            <div class="focus-info"><strong id="todayAccuracy">—</strong><span>Accuracy</span></div>
+                        </div>
                     </div>
                 </div>
-                <div id="reviewEmpty" style="display:none;text-align:center;padding:60px 20px">
-                    <i class="fa-solid fa-check-circle" style="font-size:3.5rem;color:var(--success);display:block;margin-bottom:16px"></i>
-                    <h3 style="font-size:1.3rem;font-weight:800;margin-bottom:8px">Tuyệt vời!</h3>
-                    <p style="color:var(--text-muted)">Bạn đã thuộc hết tất cả từ vựng.</p>
+
+                <!-- REVIEW SESSION -->
+                <div id="reviewSessionView" style="display:none">
+                    <div class="study-topbar">
+                        <button class="study-back-btn" id="revBackBtn"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <button class="study-fav-btn" id="revFavBtn"><i class="fa-regular fa-star"></i></button>
+                            <span class="study-mode-badge" id="revQueueBadge">0 / 0</span>
+                        </div>
+                    </div>
+
+                    <div id="revFrontPanel">
+                        <div class="rev-card">
+                            <div class="rev-card-deck" id="revCardDeck">-</div>
+                            <div class="rev-card-word" id="revWord">-</div>
+                            <div class="rev-card-ipa" id="revIpa">-</div>
+                        </div>
+                        <button class="btn-continue" id="revShowAnswerBtn">Show Meaning</button>
+                    </div>
+
+                    <div id="revBackPanel" style="display:none">
+                        <div class="rev-card rev-card-back">
+                            <div class="rev-card-word" id="revWordBack">-</div>
+                            <div class="rev-card-meaning" id="revMeaning">-</div>
+                            <div class="rev-card-example" id="revExample">-</div>
+                        </div>
+                        <div class="rev-rating-grid">
+                            <button class="rev-rate-btn rev-again" id="revAgain"><span class="rev-emoji">😞</span><span>Again</span></button>
+                            <button class="rev-rate-btn rev-hard"  id="revHard" ><span class="rev-emoji">😐</span><span>Hard</span></button>
+                            <button class="rev-rate-btn rev-good"  id="revGood" ><span class="rev-emoji">🙂</span><span>Good</span></button>
+                            <button class="rev-rate-btn rev-easy"  id="revEasy" ><span class="rev-emoji">😎</span><span>Easy</span></button>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- REVIEW COMPLETE -->
+                <div id="reviewComplete" style="display:none">
+                    <div class="res-header">
+                        <i class="fa-solid fa-trophy res-trophy"></i>
+                        <h3>Review Complete!</h3>
+                        <p>Great work — keep the streak going.</p>
+                    </div>
+                    <div class="res-grid">
+                        <div class="res-item"><span id="revCompleteTotal">0</span><label>Reviewed</label></div>
+                        <div class="res-item res-green"><span id="revCompleteCorrect">0</span><label>Correct</label></div>
+                        <div class="res-item"><span id="revCompleteAcc">0%</span><label>Accuracy</label></div>
+                    </div>
+                    <button class="btn-continue" id="revDoneBtn">Back to Review</button>
+                </div>
+
             </section>
 
         </main>
@@ -344,18 +555,18 @@
         </nav>
     </div>
 
-    <script src="group_1.js"></script>
-    <script src="group_2.js"></script>
-    <script src="group_3.js"></script>
-    <script src="group_4.js"></script>
-    <script src="group_5.js"></script>
-    <script src="group_6.js"></script>
-    <script src="group_7.js"></script>
-    <script src="group_8.js"></script>
-    <script src="group_9.js"></script>
-    <script src="group_10.js"></script>
-    <script src="group_11.js"></script>
-    
-    <script src="app.js"></script>
+    <script src="data/group_1.js"></script>
+    <script src="data/group_2.js"></script>
+    <script src="data/group_3.js"></script>
+    <script src="data/group_4.js"></script>
+    <script src="data/group_5.js"></script>
+    <script src="data/group_6.js"></script>
+    <script src="data/group_7.js"></script>
+    <script src="data/group_8.js"></script>
+    <script src="data/group_9.js"></script>
+    <script src="data/group_10.js"></script>
+    <script src="data/group_11.js"></script>
+
+    <script src="js/app.js"></script>
 </body>
 </html>
