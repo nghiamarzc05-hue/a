@@ -11,12 +11,6 @@ let currentStreak = 0;
 let DOM = {};
 let englishVoice = null;
 
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
-    });
-}
-
 function initVoices() {
     if (!('speechSynthesis' in window)) return;
     const findVoice = () => {
