@@ -67,8 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoices();
     setupTheme();
     checkStreak();
-    mergeData(); 
-    renderDeckList(allDecks, DOM.deckList);
+    mergeData();
     setupNavigation();
     setupEventListeners();
     updateDashboardStats();
@@ -78,7 +77,6 @@ function initDOM() {
     DOM = {
         views: document.querySelectorAll('.view-section'),
         navItems: document.querySelectorAll('.nav-item, .sidebar-nav .nav-item'),
-        deckList: document.getElementById('deckList'),
         libraryList: document.getElementById('libraryList'),
         searchInput: document.getElementById('searchInput'),
         
@@ -162,7 +160,7 @@ function setupNavigation() {
             if (viewEl) viewEl.classList.add('active');
             
             if (DOM.viewTitle) {
-                const titles = { 'dashboard': 'Trang chủ', 'study': currentDeck ? `Học: ${currentDeck.ten}` : 'Học tập', 'library': 'Tìm kiếm', 'settings': 'Cài đặt' };
+                const titles = { 'dashboard': 'Trang chủ', 'library': 'Thư viện', 'settings': 'Cài đặt' };
                 DOM.viewTitle.innerText = titles[v] || 'Flashcards';
             }
             if (v === 'library') renderDeckList(allDecks, DOM.libraryList);
@@ -171,10 +169,13 @@ function setupNavigation() {
 }
 
 function loadDeck(deck) {
-    currentDeck = deck; 
+    currentDeck = deck;
     currentCardIndex = 0;
-    const studyBtn = document.querySelector('[data-view="study"]');
-    if (studyBtn) studyBtn.click();
+    DOM.navItems.forEach(b => b.classList.remove('active'));
+    DOM.views.forEach(view => view.classList.remove('active'));
+    const studyView = document.getElementById('studyView');
+    if (studyView) studyView.classList.add('active');
+    if (DOM.viewTitle) DOM.viewTitle.innerText = `Học: ${currentDeck.ten}`;
     showCard();
 }
 
