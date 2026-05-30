@@ -109,45 +109,175 @@
             </section>
 
             <section id="studyView" class="view-section">
-                <div id="noDeckMsg" style="display:none;text-align:center;padding:60px 20px">
-                    <i class="fa-solid fa-book-open" style="font-size:3.5rem;color:var(--text-muted);display:block;margin-bottom:16px"></i>
-                    <h3 style="font-size:1.3rem;font-weight:800;margin-bottom:8px">Chưa chọn bài học</h3>
-                    <p style="color:var(--text-muted);margin-bottom:24px">Vào Library để chọn chủ đề muốn học</p>
-                    <button class="btn-primary" style="width:auto;padding:12px 32px" onclick="document.querySelector('[data-view=library]').click()">Mở Library →</button>
-                </div>
-                <div class="study-container" id="studyContainer">
-                    <div class="flashcard-wrapper">
-                        <div id="flashcard" class="flashcard">
-                            <div class="card-face card-front">
-                                <div class="card-content-scroll">
-                                    <div class="card-status" id="cardCounter">0 / 0</div>
-                                    <h2 id="cardWord">Word</h2>
-                                    <div class="ipa-text" id="cardIpa">/ipa/</div>
-                                    <div class="hint-text">Chạm / Phím cách để lật</div>
-                                </div>
+
+                <!-- ① MODE PICKER -->
+                <div id="learnModePicker">
+                    <div id="learnDeckBanner" style="display:none">
+                        <p class="dash-label" style="margin-top:0">Current Deck</p>
+                        <div class="learn-deck-chip">
+                            <i class="fa-solid fa-layer-group"></i>
+                            <span id="learnDeckChipName">-</span>
+                            <button class="chip-change-btn" onclick="document.querySelector('[data-view=library]').click()">Change</button>
+                        </div>
+                    </div>
+                    <div id="learnNoDeck">
+                        <p class="dash-label" style="margin-top:0">No deck selected</p>
+                        <div class="learn-no-deck">
+                            <i class="fa-solid fa-book-open"></i>
+                            <p>Pick a topic from Library to start learning</p>
+                            <button class="btn-continue" onclick="document.querySelector('[data-view=library]').click()">Open Library →</button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Modes -->
+                    <div id="quickModesSection" style="display:none">
+                        <p class="dash-label">Quick Start</p>
+                        <div class="qm-grid">
+                            <div class="qm-card" id="qmNewBtn">
+                                <i class="fa-solid fa-star" style="color:#F59E0B;font-size:1.4rem"></i>
+                                <div><strong>New Words</strong><span id="qmNewCount">-</span></div>
                             </div>
-                            <div class="card-face card-back">
-                                <div class="card-content-scroll">
-                                    <div class="card-pos-tag" id="cardPos">Từ loại</div>
-                                    <h3 id="cardMeaning">Nghĩa tiếng Việt</h3>
-                                    <div class="example-box">
-                                        <div class="example-en" id="cardExampleEn">English Example</div>
-                                        <div class="example-vi" id="cardExampleVi">Nghĩa tiếng Việt ví dụ</div>
-                                    </div>
-                                </div>
+                            <div class="qm-card" id="qmReviewBtn">
+                                <i class="fa-solid fa-rotate-left" style="color:var(--teal);font-size:1.4rem"></i>
+                                <div><strong>Review</strong><span id="qmReviewCount">-</span></div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="study-controls">
-                        <button id="prevBtn" class="control-btn"><i class="fa-solid fa-chevron-left"></i></button>
-                        <button id="notMasteredBtn" class="control-btn"><i class="fa-solid fa-xmark"></i></button>
-                        <button id="speakBtn" class="control-btn speak-btn"><i class="fa-solid fa-volume-high"></i></button>
-                        <button id="masterBtn" class="control-btn"><i class="fa-solid fa-check"></i></button>
-                        <button id="nextBtn" class="control-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div id="learnModeCards" style="display:none">
+                        <p class="dash-label">Choose Mode</p>
+                        <div class="lm-grid">
+                            <div class="lm-card lm-manual" id="startManualBtn">
+                                <div class="lm-icon-wrap lm-icon-blue"><i class="fa-solid fa-hand-pointer"></i></div>
+                                <div class="lm-name">Manual Learning</div>
+                                <ul class="lm-features">
+                                    <li><i class="fa-solid fa-check"></i>Flip cards manually</li>
+                                    <li><i class="fa-solid fa-check"></i>Next / Previous</li>
+                                    <li><i class="fa-solid fa-check"></i>Mark known / unknown</li>
+                                </ul>
+                                <div class="lm-cta lm-cta-blue">Configure <i class="fa-solid fa-arrow-right"></i></div>
+                            </div>
+                            <div class="lm-card lm-auto" id="startAutoBtn">
+                                <div class="lm-icon-wrap lm-icon-teal"><i class="fa-solid fa-play"></i></div>
+                                <div class="lm-name">Auto Learning</div>
+                                <ul class="lm-features">
+                                    <li><i class="fa-solid fa-check"></i>Auto advance cards</li>
+                                    <li><i class="fa-solid fa-check"></i>Auto pronunciation</li>
+                                    <li><i class="fa-solid fa-check"></i>Auto repeat</li>
+                                </ul>
+                                <div class="lm-cta lm-cta-teal">Configure <i class="fa-solid fa-arrow-right"></i></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </section>  <!-- /studyView -->
+
+                <!-- ② CONFIG PANEL -->
+                <div id="learnConfigPanel" style="display:none">
+                    <div class="cfg-topbar">
+                        <button class="study-back-btn" id="cfgBackBtn"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <span class="study-mode-badge" id="cfgModeBadge">Manual</span>
+                    </div>
+                    <div class="cfg-deck-name" id="cfgDeckName">-</div>
+
+                    <div class="cfg-section">
+                        <label class="cfg-check"><input type="checkbox" id="cfgIncludeNew" checked><span><i class="fa-solid fa-star" style="color:#F59E0B"></i> Learn New Words</span></label>
+                        <label class="cfg-check"><input type="checkbox" id="cfgIncludeReview"><span><i class="fa-solid fa-rotate-left" style="color:var(--teal)"></i> Review Words</span></label>
+                        <label class="cfg-check"><input type="checkbox" id="cfgShuffle" checked><span><i class="fa-solid fa-shuffle" style="color:var(--primary)"></i> Shuffle</span></label>
+                        <label class="cfg-check" id="cfgAutoPronounceRow"><input type="checkbox" id="cfgAutoPronounce" checked><span><i class="fa-solid fa-volume-high" style="color:#A855F7"></i> Auto Pronunciation</span></label>
+                    </div>
+
+                    <div class="cfg-section">
+                        <div class="cfg-counter-row">
+                            <span class="cfg-counter-label">Cards</span>
+                            <div class="cfg-stepper">
+                                <button class="step-btn" id="cfgCardsDown">−</button>
+                                <span id="cfgCardsVal">20</span>
+                                <button class="step-btn" id="cfgCardsUp">+</button>
+                            </div>
+                        </div>
+                        <div class="cfg-counter-row" id="cfgSpeedRow" style="display:none">
+                            <span class="cfg-counter-label">Speed</span>
+                            <div class="cfg-stepper">
+                                <button class="step-btn" id="cfgSpeedDown">−</button>
+                                <span id="cfgSpeedVal">3s</span>
+                                <button class="step-btn" id="cfgSpeedUp">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-continue" id="cfgStartBtn">Start Learning →</button>
+                </div>
+
+                <!-- ④ SESSION RESULTS -->
+                <div id="sessionResults" style="display:none">
+                    <div class="res-header">
+                        <i class="fa-solid fa-trophy res-trophy"></i>
+                        <h3>Session Complete!</h3>
+                        <p>Great job keeping up the practice.</p>
+                    </div>
+                    <div class="res-grid">
+                        <div class="res-item"><span id="resCards">0</span><label>Cards</label></div>
+                        <div class="res-item res-green"><span id="resKnown">0</span><label>Known</label></div>
+                        <div class="res-item res-red"><span id="resUnknown">0</span><label>Unknown</label></div>
+                        <div class="res-item"><span id="resRate">0%</span><label>Rate</label></div>
+                        <div class="res-item"><span id="resTime">0:00</span><label>Time</label></div>
+                    </div>
+                    <button class="btn-continue" id="resAgainBtn">Study Again</button>
+                    <button class="study-back-btn" style="width:100%;margin-top:10px;justify-content:center" id="resLibraryBtn"><i class="fa-solid fa-arrow-left"></i> Back to Library</button>
+                </div>
+
+                <!-- ② STUDY AREA (Manual + Auto share the flashcard) -->
+                <div id="studyContainer" style="display:none">
+                    <div class="study-topbar">
+                        <button class="study-back-btn" id="studyBackBtn"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <span class="study-mode-badge" id="studyModeBadge">Manual</span>
+                    </div>
+                    <div class="study-inner">
+                        <div class="flashcard-wrapper">
+                            <div id="flashcard" class="flashcard">
+                                <div class="card-face card-front">
+                                    <div class="card-content-scroll">
+                                        <div class="card-status" id="cardCounter">0 / 0</div>
+                                        <h2 id="cardWord">Word</h2>
+                                        <div class="ipa-text" id="cardIpa">/ipa/</div>
+                                        <div class="hint-text" id="cardHint">Tap / Space to flip</div>
+                                    </div>
+                                </div>
+                                <div class="card-face card-back">
+                                    <div class="card-content-scroll">
+                                        <div class="card-pos-tag" id="cardPos">Từ loại</div>
+                                        <h3 id="cardMeaning">Nghĩa tiếng Việt</h3>
+                                        <div class="example-box">
+                                            <div class="example-en" id="cardExampleEn">English Example</div>
+                                            <div class="example-vi" id="cardExampleVi">Nghĩa ví dụ</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Manual Controls -->
+                        <div class="study-controls" id="manualControls">
+                            <button id="prevBtn" class="control-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button id="notMasteredBtn" class="control-btn"><i class="fa-solid fa-xmark"></i></button>
+                            <button id="speakBtn" class="control-btn speak-btn"><i class="fa-solid fa-volume-high"></i></button>
+                            <button id="masterBtn" class="control-btn"><i class="fa-solid fa-check"></i></button>
+                            <button id="nextBtn" class="control-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+
+                        <!-- Auto Controls -->
+                        <div class="auto-controls" id="autoControls" style="display:none">
+                            <div class="auto-progress-bar"><div class="auto-progress-fill" id="autoFill"></div></div>
+                            <div class="auto-btns">
+                                <button class="auto-speed-btn" id="autoSlowBtn"><i class="fa-solid fa-gauge-simple-low"></i> Slow</button>
+                                <button class="auto-pause-btn" id="autoPauseBtn"><i class="fa-solid fa-pause"></i></button>
+                                <button class="auto-speed-btn" id="autoFastBtn"><i class="fa-solid fa-gauge-simple-high"></i> Fast</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
 
             <section id="libraryView" class="view-section">
                 <div class="search-box">

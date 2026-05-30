@@ -12,6 +12,17 @@ let DOM = {};
 let englishVoice = null;
 const audioCache = {};
 
+let studyMode = null;
+let autoTimer = null;
+let autoSpeed = 3000;
+let autoPhase = 'front';
+let autoPaused = false;
+let currentModeToStart = 'manual';
+let sessionConfig = { includeNew: true, includeReview: false, shuffle: true, autoPronounce: true, cardCount: 20, speed: 3 };
+let sessionStart = null;
+let sessionKnown = 0;
+let sessionUnknown = 0;
+
 function initVoices() {
     if (!('speechSynthesis' in window)) return;
     const findVoice = () => {
@@ -151,6 +162,20 @@ function initDOM() {
         focusReviewCount: document.getElementById('focusReviewCount'),
         focusNewBtn: document.getElementById('focusNewBtn'),
         focusReviewFocusBtn: document.getElementById('focusReviewFocusBtn'),
+        learnModePicker: document.getElementById('learnModePicker'),
+        learnDeckBanner: document.getElementById('learnDeckBanner'),
+        learnNoDeck: document.getElementById('learnNoDeck'),
+        learnModeCards: document.getElementById('learnModeCards'),
+        learnDeckChipName: document.getElementById('learnDeckChipName'),
+        studyContainer: document.getElementById('studyContainer'),
+        studyModeBadge: document.getElementById('studyModeBadge'),
+        manualControls: document.getElementById('manualControls'),
+        autoControls: document.getElementById('autoControls'),
+        autoFill: document.getElementById('autoFill'),
+        autoPauseBtn: document.getElementById('autoPauseBtn'),
+        autoSlowBtn: document.getElementById('autoSlowBtn'),
+        autoFastBtn: document.getElementById('autoFastBtn'),
+        cardHint: document.getElementById('cardHint'),
         statTotalDecks: document.getElementById('statTotalDecks'),
         statTotalWords: document.getElementById('statTotalWords'),
         statMastered: document.getElementById('statMastered'),
@@ -218,11 +243,10 @@ function setupNavigation() {
             }
             if (v === 'library') renderDeckList(allDecks, DOM.libraryList);
             if (v === 'study') {
-                const noDeck = document.getElementById('noDeckMsg');
-                const container = document.getElementById('studyContainer');
-                const hasDeck = !!currentDeck;
-                if (noDeck) noDeck.style.display = hasDeck ? 'none' : 'block';
-                if (container) container.style.display = hasDeck ? 'flex' : 'none';
+                stopAuto();
+                if (DOM.studyContainer) DOM.studyContainer.style.display = 'none';
+                if (DOM.learnModePicker) DOM.learnModePicker.style.display = 'block';
+                updateLearnModePicker();
             }
             if (v === 'review') renderReviewView();
         });
@@ -232,17 +256,206 @@ function setupNavigation() {
 function loadDeck(deck) {
     currentDeck = deck;
     currentCardIndex = 0;
-    localStorage.setItem('lastDeckId', deck.id);
+    if (deck.id !== '__review__') localStorage.setItem('lastDeckId', deck.id);
+    stopAuto();
     DOM.navItems.forEach(b => b.classList.remove('active'));
     DOM.views.forEach(view => view.classList.remove('active'));
+    document.querySelectorAll('[data-view="study"]').forEach(b => b.classList.add('active'));
     const studyView = document.getElementById('studyView');
     if (studyView) studyView.classList.add('active');
-    if (DOM.viewTitle) DOM.viewTitle.innerText = currentDeck.ten;
-    const noDeck = document.getElementById('noDeckMsg');
-    const container = document.getElementById('studyContainer');
-    if (noDeck) noDeck.style.display = 'none';
-    if (container) container.style.display = 'flex';
+    if (DOM.studyContainer) DOM.studyContainer.style.display = 'none';
+    if (DOM.learnModePicker) DOM.learnModePicker.style.display = 'block';
+    if (DOM.viewTitle) DOM.viewTitle.innerText = 'Learn';
+    updateLearnModePicker();
+    renderContinueLearning();
+}
+
+function updateLearnModePicker() {
+    if (!DOM.learnModePicker) return;
+    const hasDeck = !!currentDeck;
+    if (DOM.learnNoDeck) DOM.learnNoDeck.style.display = hasDeck ? 'none' : 'block';
+    if (DOM.learnDeckBanner) DOM.learnDeckBanner.style.display = hasDeck ? 'block' : 'none';
+    if (DOM.learnDeckChipName && currentDeck) DOM.learnDeckChipName.innerText = currentDeck.ten;
+    if (DOM.learnModeCards) DOM.learnModeCards.style.display = hasDeck ? 'block' : 'none';
+    const qms = document.getElementById('quickModesSection');
+    if (qms) qms.style.display = hasDeck ? 'block' : 'none';
+    if (hasDeck) updateQuickModeCounts();
+}
+
+function updateQuickModeCounts() {
+    if (!currentDeck) return;
+    const items = currentDeck.items || [];
+    const newCount = items.filter(it => !masteredCards.includes(it.id)).length;
+    const revCount = items.filter(it => masteredCards.includes(it.id)).length;
+    const qmNew = document.getElementById('qmNewCount');
+    const qmRev = document.getElementById('qmReviewCount');
+    if (qmNew) qmNew.innerText = `${newCount} words`;
+    if (qmRev) qmRev.innerText = `${revCount} words`;
+}
+
+function openConfigPanel(mode, preConfig) {
+    currentModeToStart = mode;
+    if (preConfig) Object.assign(sessionConfig, preConfig);
+    if (DOM.learnModePicker) DOM.learnModePicker.style.display = 'none';
+    const panel = document.getElementById('learnConfigPanel');
+    if (!panel) return;
+    panel.style.display = 'block';
+    const badge = document.getElementById('cfgModeBadge');
+    if (badge) badge.innerText = mode === 'auto' ? 'Auto' : 'Manual';
+    const deckName = document.getElementById('cfgDeckName');
+    if (deckName) deckName.innerText = currentDeck ? currentDeck.ten : '-';
+    const speedRow = document.getElementById('cfgSpeedRow');
+    if (speedRow) speedRow.style.display = mode === 'auto' ? 'flex' : 'none';
+    const autoPronRow = document.getElementById('cfgAutoPronounceRow');
+    if (autoPronRow) autoPronRow.style.display = mode === 'auto' ? 'flex' : 'none';
+    // Sync checkboxes
+    const el = id => document.getElementById(id);
+    if (el('cfgIncludeNew')) el('cfgIncludeNew').checked = sessionConfig.includeNew;
+    if (el('cfgIncludeReview')) el('cfgIncludeReview').checked = sessionConfig.includeReview;
+    if (el('cfgShuffle')) el('cfgShuffle').checked = sessionConfig.shuffle;
+    if (el('cfgAutoPronounce')) el('cfgAutoPronounce').checked = sessionConfig.autoPronounce;
+    if (el('cfgCardsVal')) el('cfgCardsVal').innerText = sessionConfig.cardCount;
+    if (el('cfgSpeedVal')) el('cfgSpeedVal').innerText = sessionConfig.speed + 's';
+}
+
+function buildSessionDeck(baseDeck) {
+    let items = [...(baseDeck.items || [])];
+    if (sessionConfig.includeNew && !sessionConfig.includeReview)
+        items = items.filter(it => !masteredCards.includes(it.id));
+    else if (sessionConfig.includeReview && !sessionConfig.includeNew)
+        items = items.filter(it => masteredCards.includes(it.id));
+    if (items.length === 0) items = [...(baseDeck.items || [])];
+    if (sessionConfig.shuffle) items = items.sort(() => Math.random() - 0.5);
+    const count = Math.min(sessionConfig.cardCount, items.length);
+    return { ...baseDeck, items: items.slice(0, count) };
+}
+
+function startSessionFromConfig() {
+    if (!currentDeck) return;
+    const el = id => document.getElementById(id);
+    sessionConfig.includeNew = el('cfgIncludeNew')?.checked ?? true;
+    sessionConfig.includeReview = el('cfgIncludeReview')?.checked ?? false;
+    sessionConfig.shuffle = el('cfgShuffle')?.checked ?? true;
+    sessionConfig.autoPronounce = el('cfgAutoPronounce')?.checked ?? true;
+    autoSpeed = sessionConfig.speed * 1000;
+    const sessionDeck = buildSessionDeck(currentDeck);
+    currentDeck = sessionDeck;
+    currentCardIndex = 0;
+    sessionStart = Date.now();
+    sessionKnown = 0;
+    sessionUnknown = 0;
+    el('learnConfigPanel').style.display = 'none';
+    showStudyArea(currentModeToStart);
+}
+
+function showSessionResults() {
+    stopAuto();
+    studyMode = null;
+    if (DOM.studyContainer) DOM.studyContainer.style.display = 'none';
+    const panel = document.getElementById('sessionResults');
+    if (!panel) return;
+    panel.style.display = 'block';
+    const elapsed = sessionStart ? Math.round((Date.now() - sessionStart) / 1000) : 0;
+    const total = sessionKnown + sessionUnknown;
+    const rate = total > 0 ? Math.round((sessionKnown / total) * 100) : 0;
+    const m = Math.floor(elapsed / 60), s = elapsed % 60;
+    const el = id => document.getElementById(id);
+    if (el('resCards')) el('resCards').innerText = currentDeck?.items?.length ?? 0;
+    if (el('resKnown')) el('resKnown').innerText = sessionKnown;
+    if (el('resUnknown')) el('resUnknown').innerText = sessionUnknown;
+    if (el('resRate')) el('resRate').innerText = rate + '%';
+    if (el('resTime')) el('resTime').innerText = `${m}:${s.toString().padStart(2,'0')}`;
+    if (typeof confetti !== 'undefined') confetti({ particleCount: 150, spread: 80 });
+}
+
+function showStudyArea(mode) {
+    studyMode = mode;
+    if (DOM.learnModePicker) DOM.learnModePicker.style.display = 'none';
+    if (DOM.studyContainer) DOM.studyContainer.style.display = 'block';
+    if (DOM.studyModeBadge) DOM.studyModeBadge.innerText = mode === 'auto' ? 'Auto' : 'Manual';
+    if (DOM.manualControls) DOM.manualControls.style.display = mode === 'manual' ? 'flex' : 'none';
+    if (DOM.autoControls) DOM.autoControls.style.display = mode === 'auto' ? 'flex' : 'none';
+    if (DOM.cardHint) DOM.cardHint.style.display = mode === 'auto' ? 'none' : 'block';
+    if (DOM.flashcard) DOM.flashcard.style.pointerEvents = mode === 'auto' ? 'none' : '';
     showCard();
+    if (mode === 'auto') startAutoMode();
+}
+
+function backToModePicker() {
+    stopAuto();
+    studyMode = null;
+    if (DOM.studyContainer) DOM.studyContainer.style.display = 'none';
+    if (DOM.learnModePicker) DOM.learnModePicker.style.display = 'block';
+    if (DOM.flashcard) { DOM.flashcard.classList.remove('is-flipped'); DOM.flashcard.style.pointerEvents = ''; }
+    isFlipped = false;
+}
+
+function startAutoMode() {
+    autoPaused = false;
+    autoPhase = 'front';
+    if (DOM.flashcard) DOM.flashcard.classList.remove('is-flipped');
+    isFlipped = false;
+    playWordSound();
+    tickAutoProgress();
+    autoTimer = setTimeout(autoTick, autoSpeed);
+}
+
+function autoTick() {
+    if (autoPaused) return;
+    if (autoPhase === 'front') {
+        autoPhase = 'back';
+        if (DOM.flashcard) DOM.flashcard.classList.add('is-flipped');
+        isFlipped = true;
+        tickAutoProgress();
+        autoTimer = setTimeout(autoTick, autoSpeed);
+    } else {
+        autoPhase = 'front';
+        if (currentDeck) {
+            currentCardIndex = currentCardIndex < currentDeck.items.length - 1 ? currentCardIndex + 1 : 0;
+        }
+        showCard();
+        if (DOM.flashcard) DOM.flashcard.classList.remove('is-flipped');
+        isFlipped = false;
+        playWordSound();
+        tickAutoProgress();
+        autoTimer = setTimeout(autoTick, autoSpeed);
+    }
+}
+
+function tickAutoProgress() {
+    const fill = DOM.autoFill;
+    if (!fill) return;
+    fill.style.transition = 'none';
+    fill.style.width = '0%';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        fill.style.transition = `width ${autoSpeed}ms linear`;
+        fill.style.width = '100%';
+    }));
+}
+
+function stopAuto() {
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    autoPaused = false;
+    if (DOM.autoFill) { DOM.autoFill.style.transition = 'none'; DOM.autoFill.style.width = '0%'; }
+    if (DOM.autoPauseBtn) DOM.autoPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+}
+
+function toggleAutoPause() {
+    autoPaused = !autoPaused;
+    if (DOM.autoPauseBtn) DOM.autoPauseBtn.innerHTML = autoPaused
+        ? '<i class="fa-solid fa-play"></i>'
+        : '<i class="fa-solid fa-pause"></i>';
+    if (!autoPaused) {
+        tickAutoProgress();
+        autoTimer = setTimeout(autoTick, autoSpeed);
+    } else {
+        if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+        if (DOM.autoFill) {
+            const w = getComputedStyle(DOM.autoFill).width;
+            DOM.autoFill.style.transition = 'none';
+            DOM.autoFill.style.width = w;
+        }
+    }
 }
 
 function renderReviewView() {
@@ -332,11 +545,11 @@ function setupEventListeners() {
     if(DOM.nextBtn) {
         DOM.nextBtn.addEventListener('click', (e) => {
             e.stopPropagation(); noiLua();
-            if (currentDeck && currentCardIndex < currentDeck.items.length - 1) { 
-                currentCardIndex++; 
-                showCard(); 
+            if (currentDeck && currentCardIndex < currentDeck.items.length - 1) {
+                currentCardIndex++;
+                showCard();
             } else {
-                if (typeof confetti !== 'undefined') confetti({ particleCount: 200, spread: 90 });
+                showSessionResults();
             }
         });
     }
@@ -360,11 +573,12 @@ function setupEventListeners() {
             e.stopPropagation(); noiLua();
             if(!currentDeck) return;
             const id = currentDeck.items[currentCardIndex].id;
-            if (!masteredCards.includes(id)) { 
-                masteredCards.push(id); 
-                localStorage.setItem('masteredCards', JSON.stringify(masteredCards)); 
-                updateDashboardStats(); 
+            if (!masteredCards.includes(id)) {
+                masteredCards.push(id);
+                localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
+                updateDashboardStats();
             }
+            sessionKnown++;
             updateCardStatusUI();
         });
     }
@@ -375,11 +589,12 @@ function setupEventListeners() {
             if(!currentDeck) return;
             const id = currentDeck.items[currentCardIndex].id;
             const idx = masteredCards.indexOf(id);
-            if (idx > -1) { 
-                masteredCards.splice(idx, 1); 
-                localStorage.setItem('masteredCards', JSON.stringify(masteredCards)); 
-                updateDashboardStats(); 
+            if (idx > -1) {
+                masteredCards.splice(idx, 1);
+                localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
+                updateDashboardStats();
             }
+            sessionUnknown++;
             updateCardStatusUI();
         });
     }
@@ -407,6 +622,50 @@ function setupEventListeners() {
             renderDeckList(allDecks.filter(d => d.ten.toLowerCase().includes(kw)), DOM.libraryList);
         });
     }
+
+    const startManualBtn = document.getElementById('startManualBtn');
+    const startAutoBtn = document.getElementById('startAutoBtn');
+    const studyBackBtn = document.getElementById('studyBackBtn');
+
+    if (startManualBtn) startManualBtn.addEventListener('click', () => { if (currentDeck) openConfigPanel('manual'); });
+    if (startAutoBtn) startAutoBtn.addEventListener('click', () => { if (currentDeck) openConfigPanel('auto'); });
+    if (studyBackBtn) studyBackBtn.addEventListener('click', backToModePicker);
+    if (DOM.autoPauseBtn) DOM.autoPauseBtn.addEventListener('click', toggleAutoPause);
+    if (DOM.autoSlowBtn) DOM.autoSlowBtn.addEventListener('click', () => { autoSpeed = 5000; stopAuto(); if (studyMode === 'auto') startAutoMode(); });
+    if (DOM.autoFastBtn) DOM.autoFastBtn.addEventListener('click', () => { autoSpeed = 1500; stopAuto(); if (studyMode === 'auto') startAutoMode(); });
+
+    // Quick modes
+    document.getElementById('qmNewBtn')?.addEventListener('click', () => openConfigPanel('manual', { includeNew: true, includeReview: false }));
+    document.getElementById('qmReviewBtn')?.addEventListener('click', () => openConfigPanel('manual', { includeNew: false, includeReview: true }));
+
+    // Config panel
+    document.getElementById('cfgBackBtn')?.addEventListener('click', () => {
+        document.getElementById('learnConfigPanel').style.display = 'none';
+        if (DOM.learnModePicker) DOM.learnModePicker.style.display = 'block';
+    });
+    document.getElementById('cfgStartBtn')?.addEventListener('click', startSessionFromConfig);
+
+    const cfgStep = (id, key, step, min, max, suffix) => {
+        document.getElementById(id)?.addEventListener('click', () => {
+            sessionConfig[key] = Math.min(max, Math.max(min, sessionConfig[key] + step));
+            const valEl = document.getElementById(id.replace('Down','Val').replace('Up','Val'));
+            if (valEl) valEl.innerText = sessionConfig[key] + (suffix||'');
+        });
+    };
+    cfgStep('cfgCardsDown', 'cardCount', -5, 5, 200, '');
+    cfgStep('cfgCardsUp',   'cardCount',  5, 5, 200, '');
+    cfgStep('cfgSpeedDown', 'speed', -1, 1, 10, 's');
+    cfgStep('cfgSpeedUp',   'speed',  1, 1, 10, 's');
+
+    // Results
+    document.getElementById('resAgainBtn')?.addEventListener('click', () => {
+        document.getElementById('sessionResults').style.display = 'none';
+        openConfigPanel(currentModeToStart);
+    });
+    document.getElementById('resLibraryBtn')?.addEventListener('click', () => {
+        document.getElementById('sessionResults').style.display = 'none';
+        document.querySelector('[data-view="library"]')?.click();
+    });
 }
 
 function updateDashboardStats() {
