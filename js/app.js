@@ -134,9 +134,6 @@ function initDOM() {
     DOM = {
         views: document.querySelectorAll('.view-section'),
         navItems: document.querySelectorAll('.nav-item, .sidebar-nav .nav-item'),
-        libraryList: document.getElementById('libraryList'),
-        searchInput: document.getElementById('searchInput'),
-        
         flashcard: document.getElementById('flashcard'),
         cardWord: document.getElementById('cardWord'),
         cardIpa: document.getElementById('cardIpa'),
@@ -145,17 +142,11 @@ function initDOM() {
         cardExampleVi: document.getElementById('cardExampleVi'),
         cardPos: document.getElementById('cardPos'),
         cardCounter: document.getElementById('cardCounter'),
-        
         prevBtn: document.getElementById('prevBtn'),
         nextBtn: document.getElementById('nextBtn'),
         speakBtn: document.getElementById('speakBtn'),
         masterBtn: document.getElementById('masterBtn'),
         notMasteredBtn: document.getElementById('notMasteredBtn'),
-        
-        reviewReady: document.getElementById('reviewReady'),
-        reviewEmpty: document.getElementById('reviewEmpty'),
-        reviewCount: document.getElementById('reviewCount'),
-        startReviewBtn: document.getElementById('startReviewBtn'),
         continueCard: document.getElementById('continueCard'),
         continueDeckName: document.getElementById('continueDeckName'),
         continueDeckMeta: document.getElementById('continueDeckMeta'),
@@ -166,8 +157,6 @@ function initDOM() {
         focusReviewCount: document.getElementById('focusReviewCount'),
         focusNewBtn: document.getElementById('focusNewBtn'),
         focusReviewFocusBtn: document.getElementById('focusReviewFocusBtn'),
-        libraryList: document.getElementById('libraryList'),
-        searchInput: document.getElementById('searchInput'),
         learnModePicker: document.getElementById('learnModePicker'),
         learnDeckBanner: document.getElementById('learnDeckBanner'),
         learnNoDeck: document.getElementById('learnNoDeck'),
@@ -252,6 +241,10 @@ function setupNavigation() {
             if (v === 'study') {
                 stopAuto();
                 if (DOM.studyContainer) DOM.studyContainer.style.display = 'none';
+                const sessionResults = document.getElementById('sessionResults');
+                if (sessionResults) sessionResults.style.display = 'none';
+                const cfgPanel = document.getElementById('learnConfigPanel');
+                if (cfgPanel) cfgPanel.style.display = 'none';
                 if (DOM.learnModePicker) DOM.learnModePicker.style.display = 'block';
                 updateLearnModePicker();
             }
@@ -511,6 +504,34 @@ function updateLearnModePicker() {
     const qms = document.getElementById('quickModesSection');
     if (qms) qms.style.display = hasDeck ? 'block' : 'none';
     if (hasDeck) updateQuickModeCounts();
+    else renderLearnDeckList(allDecks);
+}
+
+function renderLearnDeckList(data) {
+    const ul = document.getElementById('learnDeckList');
+    if (!ul) return;
+    ul.innerHTML = '';
+    data.forEach(deck => {
+        const total = deck.items ? deck.items.length : 0;
+        const learned = deck.items ? deck.items.filter(it => masteredCards.includes(it.id)).length : 0;
+        const pct = total > 0 ? Math.round((learned / total) * 100) : 0;
+        const li = document.createElement('li');
+        li.className = 'deck-item';
+        li.innerHTML = `
+            <div class="deck-info" style="flex:1">
+                <strong>${deck.ten}</strong>
+                <span class="deck-meta">${total} words · ${pct}%</span>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:0.8rem"></i>`;
+        li.addEventListener('click', () => {
+            currentDeck = deck;
+            currentCardIndex = 0;
+            if (deck.id !== '__review__') localStorage.setItem('lastDeckId', deck.id);
+            updateLearnModePicker();
+            renderContinueLearning();
+        });
+        ul.appendChild(li);
+    });
 }
 
 function updateQuickModeCounts() {
@@ -616,6 +637,10 @@ function backToModePicker() {
     stopAuto();
     studyMode = null;
     if (DOM.studyContainer) DOM.studyContainer.style.display = 'none';
+    const sessionResults = document.getElementById('sessionResults');
+    if (sessionResults) sessionResults.style.display = 'none';
+    const cfgPanel = document.getElementById('learnConfigPanel');
+    if (cfgPanel) cfgPanel.style.display = 'none';
     if (DOM.learnModePicker) DOM.learnModePicker.style.display = 'block';
     if (DOM.flashcard) { DOM.flashcard.classList.remove('is-flipped'); DOM.flashcard.style.pointerEvents = ''; }
     isFlipped = false;
@@ -1138,16 +1163,18 @@ function setupEventListeners() {
         });
     }
 
-    if(DOM.searchInput) {
-        DOM.searchInput.addEventListener('input', (e) => {
-            const kw = e.target.value.toLowerCase().trim();
-            renderDeckList(allDecks.filter(d => d.ten.toLowerCase().includes(kw)), DOM.libraryList);
-        });
-    }
-
     const startManualBtn = document.getElementById('startManualBtn');
     const startAutoBtn = document.getElementById('startAutoBtn');
     const studyBackBtn = document.getElementById('studyBackBtn');
+
+    document.getElementById('learnDeckSearch')?.addEventListener('input', e => {
+        const kw = e.target.value.toLowerCase().trim();
+        renderLearnDeckList(allDecks.filter(d => d.ten.toLowerCase().includes(kw)));
+    });
+    document.getElementById('changeDeckBtn')?.addEventListener('click', () => {
+        currentDeck = null;
+        updateLearnModePicker();
+    });
 
     if (startManualBtn) startManualBtn.addEventListener('click', () => { if (currentDeck) openConfigPanel('manual'); });
     if (startAutoBtn) startAutoBtn.addEventListener('click', () => { if (currentDeck) openConfigPanel('auto'); });

@@ -117,16 +117,16 @@
                         <div class="learn-deck-chip">
                             <i class="fa-solid fa-layer-group"></i>
                             <span id="learnDeckChipName">-</span>
-                            <button class="chip-change-btn" onclick="document.querySelector('[data-view=library]').click()">Change</button>
+                            <button class="chip-change-btn" id="changeDeckBtn">Change</button>
                         </div>
                     </div>
                     <div id="learnNoDeck">
-                        <p class="dash-label" style="margin-top:0">No deck selected</p>
-                        <div class="learn-no-deck">
-                            <i class="fa-solid fa-book-open"></i>
-                            <p>Pick a topic from Library to start learning</p>
-                            <button class="btn-continue" onclick="document.querySelector('[data-view=library]').click()">Open Library →</button>
+                        <p class="dash-label" style="margin-top:0">Choose a deck</p>
+                        <div class="search-box" style="margin-bottom:12px">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="learnDeckSearch" placeholder="Search decks...">
                         </div>
+                        <ul class="learn-deck-list" id="learnDeckList"></ul>
                     </div>
 
                     <!-- Quick Modes -->
