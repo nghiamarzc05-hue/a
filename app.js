@@ -110,10 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDashboardStats();
     renderContinueLearning();
     if (DOM.quickLearnBtn) DOM.quickLearnBtn.addEventListener('click', () => document.querySelector('[data-view="library"]')?.click());
-    if (DOM.quickReviewBtn) DOM.quickReviewBtn.addEventListener('click', () => {
-        document.querySelector('[data-view="library"]')?.click();
-        if (DOM.searchInput) { DOM.searchInput.value = ''; DOM.searchInput.dispatchEvent(new Event('input')); }
-    });
+    if (DOM.quickReviewBtn) DOM.quickReviewBtn.addEventListener('click', () => document.querySelector('[data-view="review"]')?.click());
+    if (DOM.focusNewBtn) DOM.focusNewBtn.addEventListener('click', () => document.querySelector('[data-view="library"]')?.click());
+    if (DOM.focusReviewFocusBtn) DOM.focusReviewFocusBtn.addEventListener('click', () => document.querySelector('[data-view="review"]')?.click());
 });
 
 function initDOM() {
@@ -148,6 +147,10 @@ function initDOM() {
         continueBtn: document.getElementById('continueBtn'),
         quickLearnBtn: document.getElementById('quickLearnBtn'),
         quickReviewBtn: document.getElementById('quickReviewBtn'),
+        focusNewCount: document.getElementById('focusNewCount'),
+        focusReviewCount: document.getElementById('focusReviewCount'),
+        focusNewBtn: document.getElementById('focusNewBtn'),
+        focusReviewFocusBtn: document.getElementById('focusReviewFocusBtn'),
         statTotalDecks: document.getElementById('statTotalDecks'),
         statTotalWords: document.getElementById('statTotalWords'),
         statMastered: document.getElementById('statMastered'),
@@ -431,4 +434,7 @@ function updateDashboardStats() {
             ? `${Math.round((masteredCards.length / totalWords) * 100)}%`
             : '0%';
     }
+    const unmastered = totalWords - masteredCards.length;
+    if(DOM.focusNewCount) DOM.focusNewCount.innerText = `${unmastered} words`;
+    if(DOM.focusReviewCount) DOM.focusReviewCount.innerText = `${masteredCards.length} to review`;
 }

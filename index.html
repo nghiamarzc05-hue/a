@@ -36,55 +36,75 @@
 
             <section id="dashboardView" class="view-section active">
 
-                <div class="greeting">
-                    <h2 class="greeting-title">Chào mừng trở lại!</h2>
-                    <p class="greeting-sub">Sẵn sàng học hôm nay chưa?</p>
+                <!-- Greeting -->
+                <div class="dash-greeting">
+                    <h2 class="dash-title">Welcome Back!</h2>
+                    <p class="dash-sub">Ready to continue learning?</p>
                 </div>
 
-                <div class="continue-card" id="continueCard" style="display:none">
-                    <p class="section-label" style="margin-top:0">Tiếp tục học</p>
-                    <div class="continue-deck-banner">
-                        <strong id="continueDeckName">-</strong>
-                        <span id="continueDeckMeta">-</span>
-                    </div>
-                    <button class="btn-primary" id="continueBtn">Tiếp tục →</button>
-                </div>
-
-                <p class="section-label">Bắt đầu nhanh</p>
-                <div class="quickstart-grid">
-                    <div class="quickstart-card quickstart-blue" id="quickLearnBtn">
-                        <span>Thư viện từ vựng</span>
-                        <i class="fa-solid fa-layer-group"></i>
-                    </div>
-                    <div class="quickstart-card quickstart-teal" id="quickReviewBtn">
-                        <span>Ôn từ chưa thuộc</span>
-                        <i class="fa-solid fa-rotate-left"></i>
+                <!-- Continue Learning -->
+                <div id="continueCard" style="display:none">
+                    <p class="dash-label">Continue Learning</p>
+                    <div class="dash-white-card">
+                        <div class="continue-banner">
+                            <strong id="continueDeckName">-</strong>
+                            <span><i class="fa-regular fa-clone"></i> Manual Mode · <span id="continueDeckMeta">-</span></span>
+                        </div>
+                        <button class="btn-continue" id="continueBtn">Continue</button>
                     </div>
                 </div>
 
-                <p class="section-label">Thống kê</p>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <i class="fa-solid fa-fire" style="color:#FF725B;background:rgba(255,114,91,0.1)"></i>
-                        <div class="stat-info"><p>Chuỗi học</p><h3 id="statStreak">0 ngày</h3></div>
+                <!-- Quick Start -->
+                <p class="dash-label">Quick Start</p>
+                <div class="qs-grid">
+                    <div class="qs-card qs-blue" id="quickLearnBtn">
+                        <span class="qs-title">Learn Manually</span>
+                        <div class="qs-bottom">
+                            <div class="qs-icons">
+                                <i class="fa-solid fa-table-cells-large"></i>
+                                <i class="fa-solid fa-arrow-right-long"></i>
+                            </div>
+                            <i class="fa-solid fa-hand-pointer qs-deco"></i>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <i class="fa-solid fa-layer-group" style="color:#A855F7;background:rgba(168,85,247,0.1)"></i>
-                        <div class="stat-info"><p>Chủ đề</p><h3 id="statTotalDecks">0</h3></div>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fa-solid fa-book" style="color:#F59E0B;background:rgba(245,158,11,0.1)"></i>
-                        <div class="stat-info"><p>Từ vựng</p><h3 id="statTotalWords">0</h3></div>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fa-solid fa-check-circle" style="color:#16A34A;background:rgba(22,163,74,0.1)"></i>
-                        <div class="stat-info"><p>Đã thuộc</p><h3 id="statMastered">0</h3></div>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fa-solid fa-chart-pie"></i>
-                        <div class="stat-info"><p>Tiến độ</p><h3 id="statProgress">0%</h3></div>
+                    <div class="qs-card qs-teal" id="quickReviewBtn">
+                        <span class="qs-title">Learn Automatically</span>
+                        <div class="qs-bottom">
+                            <div class="qs-icons">
+                                <i class="fa-solid fa-play"></i>
+                                <i class="fa-solid fa-equals"></i>
+                                <i class="fa-solid fa-forward"></i>
+                            </div>
+                            <i class="fa-regular fa-circle-play qs-deco-play"></i>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Today's Focus -->
+                <p class="dash-label">Today's Focus</p>
+                <div class="focus-grid">
+                    <div class="focus-card" id="focusNewBtn">
+                        <i class="fa-solid fa-star focus-star"></i>
+                        <div class="focus-info">
+                            <strong>Learn New Words</strong>
+                            <span id="focusNewCount">0 words</span>
+                        </div>
+                    </div>
+                    <div class="focus-card" id="focusReviewFocusBtn">
+                        <i class="fa-solid fa-circle-check focus-check"></i>
+                        <div class="focus-info">
+                            <strong>Review Words</strong>
+                            <span id="focusReviewCount">0 to review</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden stat IDs for JS -->
+                <span id="statStreak" style="display:none"></span>
+                <span id="statTotalDecks" style="display:none"></span>
+                <span id="statTotalWords" style="display:none"></span>
+                <span id="statMastered" style="display:none"></span>
+                <span id="statProgress" style="display:none"></span>
 
             </section>
 
