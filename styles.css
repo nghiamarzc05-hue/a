@@ -45,7 +45,7 @@ body {
 .sidebar-nav .nav-item { display: flex; align-items: center; gap: 15px; padding: 12px 20px; border: none; background: none; width: 100%; text-align: left; font-size: 1.05rem; font-weight: 600; color: var(--text-muted); border-radius: var(--radius-md); cursor: pointer; transition: var(--transition); }
 .sidebar-nav .nav-item.active { background-color: var(--primary); color: white; }
 
-.main-content { flex: 1; margin-left: 250px; padding: 30px 40px; max-width: 1000px; }
+.main-content { flex: 1; margin-left: 250px; padding: 30px 40px; min-width: 0; }
 .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
 #viewTitle { font-size: 1.8rem; font-weight: 800; }
 
