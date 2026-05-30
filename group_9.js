@@ -207,4 +207,6 @@ const group_9_decks = [
     {id:"tou-037", term:"resort", pos:"n", ipa:"/rɪˈzɔːrt/", meaning_vi:"khu nghỉ dưỡng", example:"A beach resort."},
     {id:"tou-038", term:"sightseeing", pos:"n", ipa:"", meaning_vi:"ngắm cảnh", example:"Let's go sightseeing."},
     {id:"tou-039", term:"valet", pos:"n", ipa:"/væˈleɪ/", meaning_vi:"nhân viên đỗ xe", example:"Give the keys to the valet."},
-    {id:"tou-040", term:"voucher", pos:"n", ipa:"/ˈvaʊtʃər/", meaning_vi:"phiếu giảm giá/quà tặng", example:"I
+    {id:"tou-040", term:"voucher", pos:"n", ipa:"/ˈvaʊtʃər/", meaning_vi:"phiếu giảm giá/quà tặng", example:"I have a voucher for this hotel."},
+  ]}
+];
