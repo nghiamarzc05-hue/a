@@ -20,9 +20,11 @@
                 <h2>Flashcards Pro</h2>
             </div>
             <nav class="sidebar-nav">
-                <button class="nav-item active" data-view="dashboard"><i class="fa-solid fa-house"></i><span>Trang chủ</span></button>
-                <button class="nav-item" data-view="library"><i class="fa-solid fa-layer-group"></i><span>Thư viện</span></button>
-                <button class="nav-item" data-view="settings"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></button>
+                <button class="nav-item active" data-view="dashboard"><i class="fa-solid fa-house"></i><span>Home</span></button>
+                <button class="nav-item" data-view="study"><i class="fa-solid fa-book-open"></i><span>Learn</span></button>
+                <button class="nav-item" data-view="review"><i class="fa-solid fa-rotate-left"></i><span>Review</span></button>
+                <button class="nav-item" data-view="library"><i class="fa-solid fa-layer-group"></i><span>Library</span></button>
+                <button class="nav-item" data-view="settings"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
             </nav>
             <p class="sidebar-copyright">© 2026 Tiến & Nghĩa</p>
         </aside>
@@ -33,47 +35,67 @@
             </header>
 
             <section id="dashboardView" class="view-section active">
+
+                <div class="greeting">
+                    <h2 class="greeting-title">Chào mừng trở lại!</h2>
+                    <p class="greeting-sub">Sẵn sàng học hôm nay chưa?</p>
+                </div>
+
+                <div class="continue-card" id="continueCard" style="display:none">
+                    <p class="section-label" style="margin-top:0">Tiếp tục học</p>
+                    <div class="continue-deck-banner">
+                        <strong id="continueDeckName">-</strong>
+                        <span id="continueDeckMeta">-</span>
+                    </div>
+                    <button class="btn-primary" id="continueBtn">Tiếp tục →</button>
+                </div>
+
+                <p class="section-label">Bắt đầu nhanh</p>
+                <div class="quickstart-grid">
+                    <div class="quickstart-card quickstart-blue" id="quickLearnBtn">
+                        <span>Thư viện từ vựng</span>
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <div class="quickstart-card quickstart-teal" id="quickReviewBtn">
+                        <span>Ôn từ chưa thuộc</span>
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </div>
+                </div>
+
+                <p class="section-label">Thống kê</p>
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <i class="fa-solid fa-fire" style="color: #FF725B; background: rgba(255, 114, 91, 0.1);"></i>
-                        <div class="stat-info">
-                            <p>Chuỗi học</p>
-                            <h3 id="statStreak">0 ngày</h3>
-                        </div>
+                        <i class="fa-solid fa-fire" style="color:#FF725B;background:rgba(255,114,91,0.1)"></i>
+                        <div class="stat-info"><p>Chuỗi học</p><h3 id="statStreak">0 ngày</h3></div>
                     </div>
                     <div class="stat-card">
-                        <i class="fa-solid fa-layer-group" style="color: #A855F7; background: rgba(168, 85, 247, 0.1);"></i>
-                        <div class="stat-info">
-                            <p>Chủ đề</p>
-                            <h3 id="statTotalDecks">0</h3>
-                        </div>
+                        <i class="fa-solid fa-layer-group" style="color:#A855F7;background:rgba(168,85,247,0.1)"></i>
+                        <div class="stat-info"><p>Chủ đề</p><h3 id="statTotalDecks">0</h3></div>
                     </div>
                     <div class="stat-card">
-                        <i class="fa-solid fa-book" style="color: #F59E0B; background: rgba(245, 158, 11, 0.1);"></i>
-                        <div class="stat-info">
-                            <p>Từ vựng</p>
-                            <h3 id="statTotalWords">0</h3>
-                        </div>
+                        <i class="fa-solid fa-book" style="color:#F59E0B;background:rgba(245,158,11,0.1)"></i>
+                        <div class="stat-info"><p>Từ vựng</p><h3 id="statTotalWords">0</h3></div>
                     </div>
                     <div class="stat-card">
-                        <i class="fa-solid fa-check-circle" style="color: var(--success); background: rgba(35, 178, 109, 0.1);"></i>
-                        <div class="stat-info">
-                            <p>Đã thuộc</p>
-                            <h3 id="statMastered">0</h3>
-                        </div>
+                        <i class="fa-solid fa-check-circle" style="color:#16A34A;background:rgba(22,163,74,0.1)"></i>
+                        <div class="stat-info"><p>Đã thuộc</p><h3 id="statMastered">0</h3></div>
                     </div>
                     <div class="stat-card">
                         <i class="fa-solid fa-chart-pie"></i>
-                        <div class="stat-info">
-                            <p>Tiến độ</p>
-                            <h3 id="statProgress">0%</h3>
-                        </div>
+                        <div class="stat-info"><p>Tiến độ</p><h3 id="statProgress">0%</h3></div>
                     </div>
                 </div>
+
             </section>
 
             <section id="studyView" class="view-section">
-                <div class="study-container">
+                <div id="noDeckMsg" style="display:none;text-align:center;padding:60px 20px">
+                    <i class="fa-solid fa-book-open" style="font-size:3.5rem;color:var(--text-muted);display:block;margin-bottom:16px"></i>
+                    <h3 style="font-size:1.3rem;font-weight:800;margin-bottom:8px">Chưa chọn bài học</h3>
+                    <p style="color:var(--text-muted);margin-bottom:24px">Vào Library để chọn chủ đề muốn học</p>
+                    <button class="btn-primary" style="width:auto;padding:12px 32px" onclick="document.querySelector('[data-view=library]').click()">Mở Library →</button>
+                </div>
+                <div class="study-container" id="studyContainer">
                     <div class="flashcard-wrapper">
                         <div id="flashcard" class="flashcard">
                             <div class="card-face card-front">
@@ -105,7 +127,7 @@
                         <button id="nextBtn" class="control-btn"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                 </div>
-            </section>
+            </section>  <!-- /studyView -->
 
             <section id="libraryView" class="view-section">
                 <div class="search-box">
@@ -139,12 +161,36 @@
                 </div>
                 <p style="text-align: center; color: var(--text-muted); font-size: 0.78rem; margin-top: 20px;">© 2026 Tiến & Nghĩa — Flashcards Pro</p>
             </section>
+
+            <section id="reviewView" class="view-section">
+                <div class="greeting">
+                    <h2 class="greeting-title">Ôn lại</h2>
+                    <p class="greeting-sub">Luyện lại những từ chưa thuộc.</p>
+                </div>
+                <div id="reviewReady" style="display:none">
+                    <div class="continue-card">
+                        <div class="continue-deck-banner" style="background:linear-gradient(135deg,#0E9898,#2AABAB)">
+                            <strong id="reviewCount">0 từ chưa thuộc</strong>
+                            <span>Tổng hợp từ tất cả chủ đề</span>
+                        </div>
+                        <button class="btn-primary" id="startReviewBtn" style="background:var(--teal)">Bắt đầu ôn tập →</button>
+                    </div>
+                </div>
+                <div id="reviewEmpty" style="display:none;text-align:center;padding:60px 20px">
+                    <i class="fa-solid fa-check-circle" style="font-size:3.5rem;color:var(--success);display:block;margin-bottom:16px"></i>
+                    <h3 style="font-size:1.3rem;font-weight:800;margin-bottom:8px">Tuyệt vời!</h3>
+                    <p style="color:var(--text-muted)">Bạn đã thuộc hết tất cả từ vựng.</p>
+                </div>
+            </section>
+
         </main>
 
         <nav class="bottom-nav" id="bottomNav">
-            <button class="nav-item active" data-view="dashboard"><i class="fa-solid fa-house"></i><span>Trang chủ</span></button>
-            <button class="nav-item" data-view="library"><i class="fa-solid fa-layer-group"></i><span>Thư viện</span></button>
-            <button class="nav-item" data-view="settings"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></button>
+            <button class="nav-item active" data-view="dashboard"><i class="fa-solid fa-house"></i><span>Home</span></button>
+            <button class="nav-item" data-view="study"><i class="fa-solid fa-book-open"></i><span>Learn</span></button>
+            <button class="nav-item" data-view="review"><i class="fa-solid fa-rotate-left"></i><span>Review</span></button>
+            <button class="nav-item" data-view="library"><i class="fa-solid fa-layer-group"></i><span>Library</span></button>
+            <button class="nav-item" data-view="settings"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
         </nav>
     </div>
 

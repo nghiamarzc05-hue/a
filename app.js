@@ -10,6 +10,7 @@ let masteredCards = [];
 let currentStreak = 0;
 let DOM = {};
 let englishVoice = null;
+const audioCache = {};
 
 function initVoices() {
     if (!('speechSynthesis' in window)) return;
@@ -23,17 +24,53 @@ function initVoices() {
     window.speechSynthesis.onvoiceschanged = findVoice;
 }
 
-function playWordSound() {
+async function playWordSound() {
     if (!currentDeck || !currentDeck.items || !currentDeck.items[currentCardIndex]) return;
     const text = currentDeck.items[currentCardIndex].term;
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        let utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.9;
-        if (englishVoice) utterance.voice = englishVoice;
-        setTimeout(() => { window.speechSynthesis.speak(utterance); }, 50);
+
+    if (text in audioCache) {
+        audioCache[text] ? playAudioUrl(audioCache[text]) : speakWithTTS(text);
+        return;
     }
+
+    try {
+        const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(text)}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+
+        let url = null;
+        for (const entry of data) {
+            for (const p of (entry.phonetics || [])) {
+                if (p.audio) {
+                    if (!url || p.audio.includes('-us')) url = p.audio;
+                    if (p.audio.includes('-us')) break;
+                }
+            }
+            if (url && url.includes('-us')) break;
+        }
+        if (url && url.startsWith('//')) url = 'https:' + url;
+
+        audioCache[text] = url || null;
+        url ? playAudioUrl(url) : speakWithTTS(text);
+    } catch {
+        audioCache[text] = null;
+        speakWithTTS(text);
+    }
+}
+
+function playAudioUrl(url) {
+    const audio = new Audio(url);
+    audio.play().catch(() => speakWithTTS(currentDeck?.items[currentCardIndex]?.term));
+}
+
+function speakWithTTS(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    if (englishVoice) utterance.voice = englishVoice;
+    setTimeout(() => window.speechSynthesis.speak(utterance), 50);
 }
 
 function checkStreak() {
@@ -71,6 +108,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     setupEventListeners();
     updateDashboardStats();
+    renderContinueLearning();
+    if (DOM.quickLearnBtn) DOM.quickLearnBtn.addEventListener('click', () => document.querySelector('[data-view="library"]')?.click());
+    if (DOM.quickReviewBtn) DOM.quickReviewBtn.addEventListener('click', () => {
+        document.querySelector('[data-view="library"]')?.click();
+        if (DOM.searchInput) { DOM.searchInput.value = ''; DOM.searchInput.dispatchEvent(new Event('input')); }
+    });
 });
 
 function initDOM() {
@@ -95,6 +138,16 @@ function initDOM() {
         masterBtn: document.getElementById('masterBtn'),
         notMasteredBtn: document.getElementById('notMasteredBtn'),
         
+        reviewReady: document.getElementById('reviewReady'),
+        reviewEmpty: document.getElementById('reviewEmpty'),
+        reviewCount: document.getElementById('reviewCount'),
+        startReviewBtn: document.getElementById('startReviewBtn'),
+        continueCard: document.getElementById('continueCard'),
+        continueDeckName: document.getElementById('continueDeckName'),
+        continueDeckMeta: document.getElementById('continueDeckMeta'),
+        continueBtn: document.getElementById('continueBtn'),
+        quickLearnBtn: document.getElementById('quickLearnBtn'),
+        quickReviewBtn: document.getElementById('quickReviewBtn'),
         statTotalDecks: document.getElementById('statTotalDecks'),
         statTotalWords: document.getElementById('statTotalWords'),
         statMastered: document.getElementById('statMastered'),
@@ -115,17 +168,14 @@ function setupTheme() {
 // KHẮC PHỤC TRIỆT ĐỂ LỖI MẤT DỮ LIỆU Ở ĐÂY
 function mergeData() {
     allDecks = [];
-    // Quét dự phòng tới 100 file
+    let misses = 0;
     for (let i = 1; i <= 100; i++) {
         try {
-            // Dùng eval để đọc an toàn biến const trong Javascript
-            let deckData = eval(`group_${i}_decks`);
-            if (deckData && Array.isArray(deckData)) {
-                allDecks = allDecks.concat(deckData);
-            }
-        } catch (error) {
-            // Nếu file group_x.js chưa được tạo, bỏ qua không báo lỗi
-        }
+            const deckData = eval(`group_${i}_decks`);
+            if (Array.isArray(deckData)) { allDecks = allDecks.concat(deckData); misses = 0; }
+            else misses++;
+        } catch { misses++; }
+        if (misses >= 3) break;
     }
 }
 
@@ -160,10 +210,18 @@ function setupNavigation() {
             if (viewEl) viewEl.classList.add('active');
             
             if (DOM.viewTitle) {
-                const titles = { 'dashboard': 'Trang chủ', 'library': 'Thư viện', 'settings': 'Cài đặt' };
+                const titles = { 'dashboard': 'Home', 'study': 'Learn', 'review': 'Review', 'library': 'Library', 'settings': 'Settings' };
                 DOM.viewTitle.innerText = titles[v] || 'Flashcards';
             }
             if (v === 'library') renderDeckList(allDecks, DOM.libraryList);
+            if (v === 'study') {
+                const noDeck = document.getElementById('noDeckMsg');
+                const container = document.getElementById('studyContainer');
+                const hasDeck = !!currentDeck;
+                if (noDeck) noDeck.style.display = hasDeck ? 'none' : 'block';
+                if (container) container.style.display = hasDeck ? 'flex' : 'none';
+            }
+            if (v === 'review') renderReviewView();
         });
     });
 }
@@ -171,12 +229,51 @@ function setupNavigation() {
 function loadDeck(deck) {
     currentDeck = deck;
     currentCardIndex = 0;
+    localStorage.setItem('lastDeckId', deck.id);
     DOM.navItems.forEach(b => b.classList.remove('active'));
     DOM.views.forEach(view => view.classList.remove('active'));
     const studyView = document.getElementById('studyView');
     if (studyView) studyView.classList.add('active');
-    if (DOM.viewTitle) DOM.viewTitle.innerText = `Học: ${currentDeck.ten}`;
+    if (DOM.viewTitle) DOM.viewTitle.innerText = currentDeck.ten;
+    const noDeck = document.getElementById('noDeckMsg');
+    const container = document.getElementById('studyContainer');
+    if (noDeck) noDeck.style.display = 'none';
+    if (container) container.style.display = 'flex';
     showCard();
+}
+
+function renderReviewView() {
+    const unmastered = [];
+    allDecks.forEach(d => {
+        if (d && d.items) d.items.forEach(item => {
+            if (!masteredCards.includes(item.id)) unmastered.push(item);
+        });
+    });
+    if (unmastered.length === 0) {
+        if (DOM.reviewReady) DOM.reviewReady.style.display = 'none';
+        if (DOM.reviewEmpty) DOM.reviewEmpty.style.display = 'block';
+        return;
+    }
+    if (DOM.reviewEmpty) DOM.reviewEmpty.style.display = 'none';
+    if (DOM.reviewReady) DOM.reviewReady.style.display = 'block';
+    if (DOM.reviewCount) DOM.reviewCount.innerText = `${unmastered.length} từ chưa thuộc`;
+    if (DOM.startReviewBtn) DOM.startReviewBtn.onclick = () => {
+        loadDeck({ id: '__review__', ten: 'Ôn lại tổng hợp', items: unmastered.sort(() => Math.random() - 0.5) });
+    };
+}
+
+function renderContinueLearning() {
+    const lastId = localStorage.getItem('lastDeckId');
+    if (!lastId || !DOM.continueCard) return;
+    const deck = allDecks.find(d => d.id === lastId);
+    if (!deck) return;
+    const total = deck.items ? deck.items.length : 0;
+    const mastered = deck.items ? deck.items.filter(it => masteredCards.includes(it.id)).length : 0;
+    const left = total - mastered;
+    DOM.continueDeckName.innerText = deck.ten;
+    DOM.continueDeckMeta.innerText = `${left} thẻ còn lại · ${mastered}/${total} đã thuộc`;
+    DOM.continueCard.style.display = 'block';
+    DOM.continueBtn.onclick = () => loadDeck(deck);
 }
 
 function showCard() {
@@ -185,16 +282,14 @@ function showCard() {
     isFlipped = false; 
     if (DOM.flashcard) DOM.flashcard.classList.remove('is-flipped');
     
-    setTimeout(() => {
-        if(DOM.cardWord) DOM.cardWord.innerText = item.term || ''; 
-        if(DOM.cardIpa) DOM.cardIpa.innerText = item.ipa || '';
-        if(DOM.cardCounter) DOM.cardCounter.innerText = `${currentCardIndex + 1} / ${currentDeck.items.length}`;
-        if(DOM.cardPos) DOM.cardPos.innerText = item.pos || 'N/A'; 
-        if(DOM.cardMeaning) DOM.cardMeaning.innerText = item.meaning_vi || '';
-        if(DOM.cardExampleEn) DOM.cardExampleEn.innerText = item.example || ''; 
-        if(DOM.cardExampleVi) DOM.cardExampleVi.innerText = item.example_vi || '';
-        updateCardStatusUI();
-    }, 150);
+    if(DOM.cardWord) DOM.cardWord.innerText = item.term || '';
+    if(DOM.cardIpa) DOM.cardIpa.innerText = item.ipa || '';
+    if(DOM.cardCounter) DOM.cardCounter.innerText = `${currentCardIndex + 1} / ${currentDeck.items.length}`;
+    if(DOM.cardPos) DOM.cardPos.innerText = item.pos || 'N/A';
+    if(DOM.cardMeaning) DOM.cardMeaning.innerText = item.meaning_vi || '';
+    if(DOM.cardExampleEn) DOM.cardExampleEn.innerText = item.example || '';
+    if(DOM.cardExampleVi) DOM.cardExampleVi.innerText = item.example_vi || '';
+    updateCardStatusUI();
 }
 
 function updateCardStatusUI() {
@@ -313,7 +408,20 @@ function setupEventListeners() {
 
 function updateDashboardStats() {
     let totalWords = 0;
-    allDecks.forEach(d => { if(d && d.items) totalWords += d.items.length; });
+    const validIds = new Set();
+    allDecks.forEach(d => {
+        if(d && d.items) {
+            totalWords += d.items.length;
+            d.items.forEach(item => validIds.add(item.id));
+        }
+    });
+
+    // Lọc bỏ id mồ côi không còn tồn tại trong data
+    const validMastered = masteredCards.filter(id => validIds.has(id));
+    if (validMastered.length !== masteredCards.length) {
+        masteredCards = validMastered;
+        localStorage.setItem('masteredCards', JSON.stringify(masteredCards));
+    }
 
     if(DOM.statTotalDecks) DOM.statTotalDecks.innerText = allDecks.length;
     if(DOM.statTotalWords) DOM.statTotalWords.innerText = totalWords.toLocaleString();
