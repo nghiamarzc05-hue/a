@@ -97,6 +97,8 @@ function initDOM() {
         masterBtn: document.getElementById('masterBtn'),
         notMasteredBtn: document.getElementById('notMasteredBtn'),
         
+        statTotalDecks: document.getElementById('statTotalDecks'),
+        statTotalWords: document.getElementById('statTotalWords'),
         statMastered: document.getElementById('statMastered'),
         statProgress: document.getElementById('statProgress'),
         statStreak: document.getElementById('statStreak'),
@@ -309,10 +311,15 @@ function setupEventListeners() {
 }
 
 function updateDashboardStats() {
+    let totalWords = 0;
+    allDecks.forEach(d => { if(d && d.items) totalWords += d.items.length; });
+
+    if(DOM.statTotalDecks) DOM.statTotalDecks.innerText = allDecks.length;
+    if(DOM.statTotalWords) DOM.statTotalWords.innerText = totalWords.toLocaleString();
     if(DOM.statMastered) DOM.statMastered.innerText = masteredCards.length;
-    let total = 0; 
-    allDecks.forEach(d => { if(d && d.items) total += d.items.length; });
-    if (total > 0 && DOM.statProgress) {
-        DOM.statProgress.innerText = `${Math.round((masteredCards.length / total) * 100)}%`;
+    if(DOM.statProgress) {
+        DOM.statProgress.innerText = totalWords > 0
+            ? `${Math.round((masteredCards.length / totalWords) * 100)}%`
+            : '0%';
     }
 }
